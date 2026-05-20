@@ -256,7 +256,7 @@ mod tests {
 
     #[test]
     fn main_page_display_labels_are_stable() {
-        assert_eq!(MainPage::Blank.to_string(), "♥️ Rustcast");
+        assert_eq!(MainPage::Blank.to_string(), "Rustcast");
         assert_eq!(MainPage::Favourites.to_string(), "Favourites");
         assert_eq!(MainPage::FrequentlyUsed.to_string(), "Frequently Used");
     }

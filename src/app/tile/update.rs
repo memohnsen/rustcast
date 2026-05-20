@@ -1267,6 +1267,7 @@ mod tests {
             update_available: false,
             ranking: HashMap::new(),
             query_lc: String::new(),
+            events: vec![],
             results,
             options: AppIndex::from_apps(vec![
                 test_app(
