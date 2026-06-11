@@ -290,7 +290,8 @@ impl Tile {
                             if modifiers.command() && s == "r" {
                                 Some(Message::ReloadConfig)
                             } else if modifiers.command() {
-                                s.parse::<usize>().ok()
+                                s.parse::<usize>()
+                                    .ok()
                                     .filter(|&n| n >= 1 && n <= 9)
                                     .map(|n| Message::OpenResult((n - 1) as u32))
                             } else if s == "p" && modifiers.control() {
