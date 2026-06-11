@@ -93,6 +93,16 @@ struct ProcessSerialNumber {
     hi: u32,
 }
 
+/// Check whether the system is in dark mode via NSUserDefaults.
+pub fn is_dark_mode() -> bool {
+    use objc2_foundation::{NSUserDefaults, ns_string};
+    let defaults = NSUserDefaults::standardUserDefaults();
+    defaults
+        .stringForKey(ns_string!("AppleInterfaceStyle"))
+        .map(|s| s.to_string() == "Dark")
+        .unwrap_or(false)
+}
+
 /// This is the function that transforms the process to a UI element, and hides the dock icon
 ///
 /// see mostly <https://github.com/electron/electron/blob/e181fd040f72becd135db1fa977622b81da21643/shell/browser/browser_mac.mm#L512C1-L532C2>

@@ -86,6 +86,44 @@ impl std::fmt::Display for MainPage {
     }
 }
 
+/// The mode for the theme (dark, light, or follow system)
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq, Copy)]
+#[serde(rename_all = "lowercase")]
+pub enum ThemeMode {
+    Dark,
+    Light,
+    System,
+}
+
+impl Default for ThemeMode {
+    fn default() -> Self {
+        ThemeMode::Dark
+    }
+}
+
+impl ThemeMode {
+    /// Return preset text and background colors for this mode.
+    pub fn presets(&self, is_system_dark: bool) -> ((f32, f32, f32), (f32, f32, f32)) {
+        match self {
+            ThemeMode::Dark => (
+                (0.95, 0.95, 0.96), // light text
+                (0.0, 0.0, 0.0),    // dark background
+            ),
+            ThemeMode::Light => (
+                (0.05, 0.05, 0.05), // dark text
+                (0.95, 0.95, 0.96), // light background
+            ),
+            ThemeMode::System => {
+                if is_system_dark {
+                    ((0.95, 0.95, 0.96), (0.0, 0.0, 0.0))
+                } else {
+                    ((0.05, 0.05, 0.05), (0.95, 0.95, 0.96))
+                }
+            }
+        }
+    }
+}
+
 /// The settings you can set for the theme
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
 #[serde(default)]
@@ -96,17 +134,20 @@ pub struct Theme {
     pub show_icons: bool,
     pub show_scroll_bar: bool,
     pub font: Option<String>,
+    pub theme_mode: ThemeMode,
 }
 
 impl Default for Theme {
     fn default() -> Self {
+        let (text, bg) = ThemeMode::Dark.presets(true);
         Self {
-            text_color: (0.95, 0.95, 0.96),
-            background_color: (0.0, 0.0, 0.0),
+            text_color: text,
+            background_color: bg,
             blur: false,
             show_icons: true,
             show_scroll_bar: false,
             font: None,
+            theme_mode: ThemeMode::Dark,
         }
     }
 }

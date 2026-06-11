@@ -18,6 +18,8 @@ use rayon::slice::ParallelSliceMut;
 use url::Url;
 
 use crate::app::Editable;
+use crate::app::FileDialogAction;
+use crate::app::ResetField;
 use crate::app::SetConfigBufferFields;
 use crate::app::SetConfigFields;
 use crate::app::SetConfigThemeFields;
@@ -36,6 +38,7 @@ use crate::calculator::Expr;
 use crate::commands::Function;
 use crate::config::Config;
 use crate::config::MainPage;
+use crate::config::ThemeMode;
 use crate::debounce::DebouncePolicy;
 use crate::platform::macos::events::Event;
 use crate::platform::macos::launching::Shortcut;
@@ -481,6 +484,11 @@ pub fn handle_update(tile: &mut Tile, message: Message) -> Task<Message> {
             ])
         }
 
+        Message::SwitchSettingsTab(tab) => {
+            tile.settings_tab = tab;
+            Task::none()
+        }
+
         Message::SwitchToPage(page) => {
             let task = match &page {
                 Page::ClipboardHistory => {
@@ -548,7 +556,7 @@ pub fn handle_update(tile: &mut Tile, message: Message) -> Task<Message> {
         }
 
         Message::HideWindow(a) => {
-            if tile.page == Page::Settings {
+            if tile.file_dialog_open {
                 return Task::none();
             }
             info!("Hiding RustCast window");
@@ -748,23 +756,80 @@ pub fn handle_update(tile: &mut Tile, message: Message) -> Task<Message> {
             }
         }
 
-        Message::OpenFileDialogue(mode_name) => rfd::FileDialog::new()
-            .add_filter("shell", &["sh", "bash", "zsh"])
-            .set_directory(
-                std::env::var("HOME").unwrap_or("".to_string()) + "/.config/rustcast/config.toml",
-            )
-            .pick_file()
-            .and_then(|path| {
-                path.to_str().map(|path_str| {
-                    Task::batch([
-                        Task::done(Message::SetConfig(SetConfigFields::Modes(
-                            Editable::Create((mode_name, path_str.to_string())),
-                        ))),
-                        Task::done(Message::WriteConfig(false)),
-                    ])
-                })
-            })
-            .unwrap_or(Task::none()),
+        Message::OpenFileDialog(action) => {
+            tile.file_dialog_open = true;
+            let home = std::env::var("HOME").unwrap_or("/".to_string());
+            match action {
+                FileDialogAction::PickModeFile(mode_name) => {
+                    let future = async move {
+                        let handle = rfd::AsyncFileDialog::new()
+                            .add_filter("shell", &["sh", "bash", "zsh"])
+                            .set_directory(home.clone() + "/.config/rustcast")
+                            .pick_file()
+                            .await;
+                        match handle {
+                            Some(file) => {
+                                let path_str = file.path().to_string_lossy().to_string();
+                                Message::FileDialogResult(Some(Box::new(Message::SetConfig(
+                                    SetConfigFields::Modes(Editable::Create((mode_name, path_str))),
+                                ))))
+                            }
+                            None => Message::FileDialogResult(None),
+                        }
+                    };
+                    Task::perform(future, |msg| msg)
+                }
+                FileDialogAction::EditSearchDir(old_dir) => {
+                    let future = async move {
+                        let handle = rfd::AsyncFileDialog::new()
+                            .set_directory(home.clone())
+                            .set_can_create_directories(false)
+                            .pick_folder()
+                            .await;
+                        match handle {
+                            Some(folder) => {
+                                let new = folder.path().to_string_lossy().to_string();
+                                Message::FileDialogResult(Some(Box::new(Message::SetConfig(
+                                    SetConfigFields::SearchDirs(Editable::Update {
+                                        old: old_dir,
+                                        new,
+                                    }),
+                                ))))
+                            }
+                            None => Message::FileDialogResult(None),
+                        }
+                    };
+                    Task::perform(future, |msg| msg)
+                }
+                FileDialogAction::AddSearchDir => {
+                    let future = async move {
+                        let handle = rfd::AsyncFileDialog::new()
+                            .set_directory(home)
+                            .set_can_create_directories(false)
+                            .pick_folder()
+                            .await;
+                        match handle {
+                            Some(folder) => {
+                                let new = folder.path().to_string_lossy().to_string();
+                                Message::FileDialogResult(Some(Box::new(Message::SetConfig(
+                                    SetConfigFields::SearchDirs(Editable::Create(new)),
+                                ))))
+                            }
+                            None => Message::FileDialogResult(None),
+                        }
+                    };
+                    Task::perform(future, |msg| msg)
+                }
+            }
+        }
+
+        Message::FileDialogResult(inner) => {
+            tile.file_dialog_open = false;
+            match inner {
+                Some(msg) => handle_update(tile, *msg),
+                None => Task::none(),
+            }
+        }
 
         Message::SetConfig(config) => {
             let mut final_config = tile.config.clone();
@@ -881,6 +946,13 @@ pub fn handle_update(tile: &mut Tile, message: Message) -> Task<Message> {
                 SetConfigFields::SetThemeFields(SetConfigThemeFields::Font(fnt)) => {
                     final_config.theme.font = Some(fnt)
                 }
+                SetConfigFields::SetThemeFields(SetConfigThemeFields::ThemeMode(mode)) => {
+                    final_config.theme.theme_mode = mode;
+                    let is_dark = crate::platform::macos::is_dark_mode();
+                    let (text, bg) = mode.presets(is_dark);
+                    final_config.theme.text_color = text;
+                    final_config.theme.background_color = bg;
+                }
                 SetConfigFields::SetThemeFields(SetConfigThemeFields::TextColor(r, g, b)) => {
                     final_config.theme.text_color = (r, g, b)
                 }
@@ -905,6 +977,54 @@ pub fn handle_update(tile: &mut Tile, message: Message) -> Task<Message> {
             };
 
             tile.config = final_config;
+            tile.theme = tile.config.theme.clone().into();
+            Task::none()
+        }
+
+        Message::ResetField(field) => {
+            let default = Config::default();
+            match field {
+                ResetField::ToggleHotkey => tile.config.toggle_hotkey = default.toggle_hotkey,
+                ResetField::ClipboardHotkey => {
+                    tile.config.clipboard_hotkey = default.clipboard_hotkey
+                }
+                ResetField::Placeholder => tile.config.placeholder = default.placeholder,
+                ResetField::SearchUrl => tile.config.search_url = default.search_url,
+                ResetField::DebounceDelay => tile.config.debounce_delay = default.debounce_delay,
+                ResetField::StartAtLogin => tile.config.start_at_login = default.start_at_login,
+                ResetField::AutoUpdate => tile.config.auto_update = default.auto_update,
+                ResetField::HapticFeedback => tile.config.haptic_feedback = default.haptic_feedback,
+                ResetField::ShowMenubarIcon => tile.config.show_trayicon = default.show_trayicon,
+                ResetField::ClipboardHistory => tile.config.cbhist = default.cbhist,
+                ResetField::MainPage => tile.config.main_page = default.main_page,
+                ResetField::ThemeMode => {
+                    tile.config.theme.theme_mode = default.theme.theme_mode;
+                    let is_dark = crate::platform::macos::is_dark_mode();
+                    let (text, bg) = default.theme.theme_mode.presets(is_dark);
+                    tile.config.theme.text_color = text;
+                    tile.config.theme.background_color = bg;
+                }
+                ResetField::ShowScrollbar => {
+                    tile.config.theme.show_scroll_bar = default.theme.show_scroll_bar
+                }
+                ResetField::ClearOnHide => {
+                    tile.config.buffer_rules.clear_on_hide = default.buffer_rules.clear_on_hide
+                }
+                ResetField::ClearOnEnter => {
+                    tile.config.buffer_rules.clear_on_enter = default.buffer_rules.clear_on_enter
+                }
+                ResetField::ShowIcons => tile.config.theme.show_icons = default.theme.show_icons,
+                ResetField::Font => tile.config.theme.font = default.theme.font,
+                ResetField::EventDuration => tile.config.event_duration = default.event_duration,
+                ResetField::TextColor => tile.config.theme.text_color = default.theme.text_color,
+                ResetField::BackgroundColor => {
+                    tile.config.theme.background_color = default.theme.background_color
+                }
+                ResetField::Aliases => tile.config.aliases = default.aliases,
+                ResetField::Modes => tile.config.modes = default.modes,
+                ResetField::SearchDirs => tile.config.search_dirs = default.search_dirs,
+                ResetField::ShellCommands => tile.config.shells = default.shells,
+            }
             Task::none()
         }
 
@@ -954,6 +1074,16 @@ pub fn handle_update(tile: &mut Tile, message: Message) -> Task<Message> {
                     Ok(handle) => tile.hotkeys.handle = Some(handle),
                     Err(e) => log::error!("Failed to re-create event tap: {e}"),
                 }
+            }
+            Task::none()
+        }
+
+        Message::ThemeModeChanged(is_dark) => {
+            if tile.config.theme.theme_mode == ThemeMode::System {
+                let (text, bg) = ThemeMode::System.presets(is_dark);
+                tile.config.theme.text_color = text;
+                tile.config.theme.background_color = bg;
+                tile.theme = tile.config.theme.clone().into();
             }
             Task::none()
         }
@@ -1328,6 +1458,8 @@ mod tests {
             page: Page::Main,
             height: DEFAULT_WINDOW_HEIGHT,
             file_search_sender: None,
+            file_dialog_open: false,
+            settings_tab: crate::app::SettingsTab::General,
             debouncer: crate::debounce::Debouncer::new(10),
         }
     }

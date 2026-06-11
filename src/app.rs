@@ -3,7 +3,7 @@ use std::collections::HashMap;
 
 use crate::app::apps::{App, AppCommand, ICNS_ICON};
 use crate::commands::Function;
-use crate::config::{Config, MainPage, Shelly};
+use crate::config::{Config, MainPage, Shelly, ThemeMode};
 use crate::debounce::DebouncePolicy;
 use crate::platform::macos::launching::Shortcut;
 use crate::utils::icns_data_to_handle;
@@ -39,6 +39,51 @@ pub enum Page {
     ClipboardHistory,
     EmojiSearch,
     Settings,
+}
+
+/// The settings panel tabs
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum SettingsTab {
+    General,
+    Appearance,
+    Commands,
+}
+
+/// Actions that open a native file dialog
+#[derive(Debug, Clone)]
+pub enum FileDialogAction {
+    PickModeFile(String),
+    EditSearchDir(String),
+    AddSearchDir,
+}
+
+/// Config fields that can be individually reset to default
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum ResetField {
+    ToggleHotkey,
+    ClipboardHotkey,
+    Placeholder,
+    SearchUrl,
+    DebounceDelay,
+    StartAtLogin,
+    AutoUpdate,
+    HapticFeedback,
+    ShowMenubarIcon,
+    ClipboardHistory,
+    MainPage,
+    ShowScrollbar,
+    ClearOnHide,
+    ClearOnEnter,
+    ShowIcons,
+    Font,
+    EventDuration,
+    TextColor,
+    BackgroundColor,
+    ThemeMode,
+    Aliases,
+    Modes,
+    SearchDirs,
+    ShellCommands,
 }
 
 impl std::fmt::Display for Page {
@@ -98,8 +143,11 @@ pub enum Message {
     RunFunction(Function),
     OpenFocused,
     SetConfig(SetConfigFields),
-    OpenFileDialogue(String),
+    OpenFileDialog(FileDialogAction),
+    FileDialogResult(Option<Box<Message>>),
     ReturnFocus,
+    SwitchSettingsTab(SettingsTab),
+    ResetField(ResetField),
     EscKeyPressed(Id),
     UpdateEvents,
     ClearSearchResults,
@@ -119,6 +167,7 @@ pub enum Message {
     SetFileSearchSender(tokio::sync::watch::Sender<(String, Vec<String>)>),
     DebouncedSearch(Id),
     CheckEventTap,
+    ThemeModeChanged(bool),
 }
 
 #[derive(Debug, Clone)]
@@ -151,6 +200,7 @@ pub enum SetConfigThemeFields {
     BackgroundColor(f32, f32, f32),
     ShowIcons(bool),
     Font(String),
+    ThemeMode(ThemeMode),
 }
 
 #[derive(Debug, Clone)]
