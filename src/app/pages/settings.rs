@@ -333,10 +333,7 @@ fn general_tab(config: Box<Config>, theme: crate::config::Theme) -> Column<'stat
                     Message::SetConfig(SetConfigFields::ClipboardPasteOnSelect(input))
                 })
                 .into(),
-            notice_item(
-                theme.clone(),
-                "Auto-paste clipboard item after selecting",
-            ),
+            notice_item(theme.clone(), "Auto-paste clipboard item after selecting"),
         ])
         .align_y(Alignment::Center)
         .spacing(SETTINGS_ITEM_COL_SPACING * 2)
