@@ -301,7 +301,10 @@ pub fn settings_tab_style(
 /// Clean container style for the settings panel (non-glass, flat).
 pub fn settings_container_style(theme: &ConfigTheme) -> container::Style {
     container::Style {
-        background: Some(Background::Color(with_alpha(tint(theme.bg_color(), 0.04), 0.25))),
+        background: Some(Background::Color(with_alpha(
+            tint(theme.bg_color(), 0.04),
+            0.25,
+        ))),
         border: Border {
             color: theme.text_color(0.15),
             width: 0.5,

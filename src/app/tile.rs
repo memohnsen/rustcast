@@ -268,6 +268,7 @@ impl Tile {
             Subscription::run(handle_recipient),
             Subscription::run(reload_events),
             Subscription::run(handle_version_and_rankings),
+            Subscription::run(handle_theme_mode),
             Subscription::run(check_event_tap),
             Subscription::run(handle_clipboard_history),
             Subscription::run(handle_file_search),
@@ -802,6 +803,21 @@ fn check_event_tap() -> impl futures::Stream<Item = Message> {
         loop {
             tokio::time::sleep(Duration::from_secs(5)).await;
             output.send(Message::CheckEventTap).await.ok();
+        }
+    })
+}
+
+/// Poll the system dark mode every 2 seconds and send a message when it changes.
+fn handle_theme_mode() -> impl futures::Stream<Item = Message> {
+    stream::channel(100, async |mut output| {
+        let mut prev_dark = crate::platform::macos::is_dark_mode();
+        loop {
+            tokio::time::sleep(Duration::from_secs(2)).await;
+            let current = crate::platform::macos::is_dark_mode();
+            if current != prev_dark {
+                prev_dark = current;
+                let _ = output.send(Message::ThemeModeChanged(current)).await;
+            }
         }
     })
 }

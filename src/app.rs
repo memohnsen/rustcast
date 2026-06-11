@@ -3,7 +3,7 @@ use std::collections::HashMap;
 
 use crate::app::apps::{App, AppCommand, ICNS_ICON};
 use crate::commands::Function;
-use crate::config::{Config, MainPage, Shelly};
+use crate::config::{Config, MainPage, Shelly, ThemeMode};
 use crate::debounce::DebouncePolicy;
 use crate::platform::macos::launching::Shortcut;
 use crate::utils::icns_data_to_handle;
@@ -79,6 +79,7 @@ pub enum ResetField {
     EventDuration,
     TextColor,
     BackgroundColor,
+    ThemeMode,
     Aliases,
     Modes,
     SearchDirs,
@@ -166,6 +167,7 @@ pub enum Message {
     SetFileSearchSender(tokio::sync::watch::Sender<(String, Vec<String>)>),
     DebouncedSearch(Id),
     CheckEventTap,
+    ThemeModeChanged(bool),
 }
 
 #[derive(Debug, Clone)]
@@ -198,6 +200,7 @@ pub enum SetConfigThemeFields {
     BackgroundColor(f32, f32, f32),
     ShowIcons(bool),
     Font(String),
+    ThemeMode(ThemeMode),
 }
 
 #[derive(Debug, Clone)]
