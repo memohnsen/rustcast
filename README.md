@@ -31,7 +31,7 @@
   <a href="https://sxitch.app">
     <img src="https://sxitch.app/sxitch_icon_nobg_white.png" width="32" height="32" alt="Sxitch" style="vertical-align: middle;" />
     &nbsp;
-    <strong>Like RustCast? Check out Sxitch</strong> — my paid macOS app, built with the same obsession for speed.
+    <strong>Like RustCast? Check out Sxitch</strong>
     &nbsp;
     <a href="https://sxitch.app">sxitch.app →</a>
   </a>
