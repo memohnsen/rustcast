@@ -4,6 +4,7 @@ use std::collections::HashMap;
 
 use iced::Border;
 use iced::border::Radius;
+use iced::widget::Container;
 use iced::widget::Slider;
 use iced::widget::Space;
 use iced::widget::TextInput;
@@ -12,6 +13,8 @@ use iced::widget::checkbox;
 use iced::widget::radio;
 use iced::widget::text_input;
 
+use crate::styles::settings_contents_container_style;
+use crate::styles::settings_tabs_container_style;
 use crate::styles::tint;
 use crate::styles::with_alpha;
 
@@ -28,7 +31,6 @@ use crate::config::ThemeMode;
 use crate::styles::delete_button_style;
 use crate::styles::settings_add_button_style;
 use crate::styles::settings_checkbox_style;
-use crate::styles::settings_container_style;
 use crate::styles::settings_radio_button_style;
 use crate::styles::settings_save_button_style;
 use crate::styles::settings_slider_style;
@@ -47,7 +49,7 @@ pub fn settings_page(config: Config, settings_tab: SettingsTab) -> Element<'stat
     let config = Box::new(config.clone());
     let theme = config.theme.clone();
 
-    let tabs_row = Row::from_iter([
+    let tabs_column = Column::from_iter([
         tab_button("General", SettingsTab::General, settings_tab, theme.clone()),
         tab_button(
             "Appearance",
@@ -62,8 +64,15 @@ pub fn settings_page(config: Config, settings_tab: SettingsTab) -> Element<'stat
             theme.clone(),
         ),
     ])
-    .spacing(2)
-    .width(Length::Fill);
+    .spacing(2);
+
+    let theme_clone = theme.clone();
+    let tabs_container = Container::new(tabs_column)
+        .style(move |_| settings_tabs_container_style(&theme_clone))
+        .height(Length::Fill)
+        .width(Length::Fixed(200.0))
+        .padding(12)
+        .align_x(Alignment::Center);
 
     let tab_content: Column<'static, Message> = match settings_tab {
         SettingsTab::General => general_tab(config.clone(), theme.clone()),
@@ -71,8 +80,7 @@ pub fn settings_page(config: Config, settings_tab: SettingsTab) -> Element<'stat
         SettingsTab::Commands => commands_tab(config.clone(), theme.clone()),
     };
 
-    let items = Column::from_iter([
-        tabs_row.into(),
+    let contents_column = Column::from_iter([
         tab_content.into(),
         Space::new().height(10).into(),
         Row::from_iter([
@@ -80,18 +88,22 @@ pub fn settings_page(config: Config, settings_tab: SettingsTab) -> Element<'stat
             copy_config_button(config),
             wiki_button(theme.clone()),
         ])
-        .spacing(5)
         .width(Length::Fill)
         .into(),
-    ])
-    .spacing(10);
+    ]);
 
-    container(items)
-        .style(move |_| settings_container_style(&theme))
+    let contents_container = Container::new(contents_column)
+        .style(move |_| settings_contents_container_style(&theme))
         .height(Length::Fill)
         .width(Length::Fill)
         .padding(12)
-        .align_x(Alignment::Center)
+        .align_x(Alignment::Center);
+
+    let items = Row::from_iter([tabs_container.into(), contents_container.into()]);
+
+    container(items)
+        .height(Length::Fill)
+        .width(Length::Fill)
         .into()
 }
 

@@ -924,9 +924,10 @@ pub fn handle_update(tile: &mut Tile, message: Message) -> Task<Message> {
                 SetConfigFields::SetThemeFields(SetConfigThemeFields::ThemeMode(mode)) => {
                     final_config.theme.theme_mode = mode;
                     let is_dark = crate::platform::macos::is_dark_mode();
-                    let (text, bg) = mode.presets(is_dark);
+                    let (text, bg, secondary) = mode.presets(is_dark);
                     final_config.theme.text_color = text;
                     final_config.theme.background_color = bg;
+                    final_config.theme.secondary_bg_color = secondary;
                 }
                 SetConfigFields::SetThemeFields(SetConfigThemeFields::TextColor(r, g, b)) => {
                     final_config.theme.text_color = (r, g, b)
@@ -977,9 +978,10 @@ pub fn handle_update(tile: &mut Tile, message: Message) -> Task<Message> {
                 ResetField::ThemeMode => {
                     tile.config.theme.theme_mode = default.theme.theme_mode;
                     let is_dark = crate::platform::macos::is_dark_mode();
-                    let (text, bg) = default.theme.theme_mode.presets(is_dark);
+                    let (text, bg, secondary) = default.theme.theme_mode.presets(is_dark);
                     tile.config.theme.text_color = text;
                     tile.config.theme.background_color = bg;
+                    tile.config.theme.secondary_bg_color = secondary;
                 }
                 ResetField::ShowScrollbar => {
                     tile.config.theme.show_scroll_bar = default.theme.show_scroll_bar
@@ -1049,9 +1051,10 @@ pub fn handle_update(tile: &mut Tile, message: Message) -> Task<Message> {
         }
         Message::ThemeModeChanged(is_dark) => {
             if tile.config.theme.theme_mode == ThemeMode::System {
-                let (text, bg) = ThemeMode::System.presets(is_dark);
+                let (text, bg, secondary) = ThemeMode::System.presets(is_dark);
                 tile.config.theme.text_color = text;
                 tile.config.theme.background_color = bg;
+                tile.config.theme.secondary_bg_color = secondary;
                 tile.theme = tile.config.theme.clone().into();
             }
             Task::none()

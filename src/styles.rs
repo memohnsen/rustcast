@@ -298,8 +298,25 @@ pub fn settings_tab_style(
     }
 }
 
-/// Clean container style for the settings panel (non-glass, flat).
-pub fn settings_container_style(theme: &ConfigTheme) -> container::Style {
+/// Clean container style for the tabs in the settings panel (non-glass, flat).
+pub fn settings_tabs_container_style(theme: &ConfigTheme) -> container::Style {
+    container::Style {
+        background: Some(Background::Color(with_alpha(
+            tint(theme.secondary_bg_color(), 0.04),
+            0.25,
+        ))),
+        border: Border {
+            color: theme.text_color(0.15),
+            width: 0.5,
+            radius: Radius::new(10),
+        },
+        text_color: Some(theme.text_color(1.0)),
+        ..Default::default()
+    }
+}
+
+/// Clean container style for the contents in settings panel (non-glass, flat).
+pub fn settings_contents_container_style(theme: &ConfigTheme) -> container::Style {
     container::Style {
         background: Some(Background::Color(with_alpha(
             tint(theme.bg_color(), 0.04),
