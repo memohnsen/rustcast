@@ -31,6 +31,7 @@ use crate::app::apps::AppCommand;
 use crate::app::default_settings;
 use crate::app::menubar::menu_builder;
 use crate::app::menubar::menu_icon;
+use crate::app::settings_window_settings;
 use crate::app::tile::AppIndex;
 use crate::app::{Message, Page, tile::Tile};
 use crate::autoupdate::download_latest_app;
@@ -121,12 +122,10 @@ pub fn handle_update(tile: &mut Tile, message: Message) -> Task<Message> {
                 Task::none()
             }
         }
-
         Message::UpdateEvents => {
             tile.events = Event::get_events(tile.config.event_duration);
             Task::none()
         }
-
         Message::UriReceived(uri) => {
             let Ok(url) = Url::parse(&uri) else {
                 return Task::none();
@@ -149,7 +148,6 @@ pub fn handle_update(tile: &mut Tile, message: Message) -> Task<Message> {
                 _ => Task::none(),
             }
         }
-
         Message::UpdateAvailable => {
             tile.update_available = true;
 
@@ -160,7 +158,6 @@ pub fn handle_update(tile: &mut Tile, message: Message) -> Task<Message> {
             }
             Task::done(Message::ReloadConfig)
         }
-
         Message::SwitchMode(mode) => {
             if let Some(command) = tile.config.modes.get(mode.trim()) {
                 tile.current_mode = mode.clone();
@@ -174,7 +171,6 @@ pub fn handle_update(tile: &mut Tile, message: Message) -> Task<Message> {
                 Task::none()
             }
         }
-
         Message::HideTrayIcon => {
             tile.tray_icon = None;
             tile.config.show_trayicon = false;
@@ -183,7 +179,6 @@ pub fn handle_update(tile: &mut Tile, message: Message) -> Task<Message> {
             thread::spawn(move || fs::write(home + "/.config/rustcast/config.toml", confg_str));
             Task::none()
         }
-
         Message::SetSender(sender) => {
             tile.sender = Some(sender.clone());
             match global_handler(sender.clone(), tile.hotkeys.all_hotkeys()) {
@@ -198,7 +193,6 @@ pub fn handle_update(tile: &mut Tile, message: Message) -> Task<Message> {
             }
             Task::none()
         }
-
         Message::ToggleAutoStartup(set_to) => {
             if set_to {
                 start_at_login();
@@ -209,7 +203,6 @@ pub fn handle_update(tile: &mut Tile, message: Message) -> Task<Message> {
             }
             Task::none()
         }
-
         Message::EscKeyPressed(id) => {
             if !tile.query_lc.is_empty() {
                 return Task::batch([
@@ -220,9 +213,6 @@ pub fn handle_update(tile: &mut Tile, message: Message) -> Task<Message> {
 
             match tile.page {
                 Page::Main => {}
-                Page::Settings => {
-                    return Task::done(Message::WriteConfig(true));
-                }
                 _ => {
                     return Task::done(Message::SwitchToPage(Page::Main));
                 }
@@ -249,13 +239,11 @@ pub fn handle_update(tile: &mut Tile, message: Message) -> Task<Message> {
                 ])
             }
         }
-
         Message::ClearSearchQuery => {
             tile.query_lc = String::new();
             tile.query = String::new();
             Task::none()
         }
-
         Message::ChangeFocus(key, amount) => {
             let mut return_task = Task::none();
             for _ in 0..amount {
@@ -301,7 +289,6 @@ pub fn handle_update(tile: &mut Tile, message: Message) -> Task<Message> {
                 let quantity = match tile.page {
                     Page::Main | Page::FileSearch | Page::ClipboardHistory => 66.5,
                     Page::EmojiSearch => 5.,
-                    Page::Settings => 0.,
                 };
 
                 let (wrapped_up, wrapped_down) = match &key {
@@ -331,7 +318,6 @@ pub fn handle_update(tile: &mut Tile, message: Message) -> Task<Message> {
             }
             return_task
         }
-
         Message::ResizeWindow(id, height) => {
             info!("Resizing rustcast window");
             tile.height = height;
@@ -350,7 +336,6 @@ pub fn handle_update(tile: &mut Tile, message: Message) -> Task<Message> {
 
             Task::none()
         }
-
         Message::SaveRanking => {
             tile.ranking = tile.options.get_rankings();
             let string_rep = toml::to_string(&tile.ranking).unwrap_or("".to_string());
@@ -359,10 +344,8 @@ pub fn handle_update(tile: &mut Tile, message: Message) -> Task<Message> {
             fs::write(ranking_file_path, string_rep).ok();
             Task::none()
         }
-
         Message::OpenFocused => Task::done(Message::OpenResult(tile.focus_id)),
         Message::OpenResult(id) => open_result(tile, id as usize),
-
         Message::ReloadConfig => {
             info!("Reloading config");
             let new_config: Config = match toml::from_str(
@@ -426,7 +409,6 @@ pub fn handle_update(tile: &mut Tile, message: Message) -> Task<Message> {
                 Task::done(Message::SetSender(tile.sender.clone().unwrap())),
             ])
         }
-
         Message::KeyPressed(shortcut) => {
             if let Some(cmd) = tile.hotkeys.shells.get(&shortcut) {
                 return Task::done(Message::RunFunction(Function::RunShellCommand(
@@ -475,20 +457,10 @@ pub fn handle_update(tile: &mut Tile, message: Message) -> Task<Message> {
                 Task::none()
             }
         }
-
-        Message::OpenToSettings => {
-            tile.page = Page::Settings;
-            Task::batch([
-                Task::done(Message::OpenWindow),
-                open_window(((7 * 55) + 35 + DEFAULT_WINDOW_HEIGHT as usize) as f32),
-            ])
-        }
-
         Message::SwitchSettingsTab(tab) => {
             tile.settings_tab = tab;
             Task::none()
         }
-
         Message::SwitchToPage(page) => {
             let task = match &page {
                 Page::ClipboardHistory => {
@@ -503,13 +475,6 @@ pub fn handle_update(tile: &mut Tile, message: Message) -> Task<Message> {
                         )
                     })
                 }
-                Page::Settings => window::latest().map(|x| {
-                    let id = x.unwrap();
-                    Message::ResizeWindow(
-                        id,
-                        ((7 * 55) + 35 + DEFAULT_WINDOW_HEIGHT as usize) as f32,
-                    )
-                }),
                 _ => Task::none(),
             };
 
@@ -530,7 +495,6 @@ pub fn handle_update(tile: &mut Tile, message: Message) -> Task<Message> {
                 refresh_empty_main_query,
             ])
         }
-
         Message::RunFunction(command) => {
             if let Function::TileWindow(pos) = &command {
                 if let Some(pid) = tile.frontmost.as_ref().map(|a| a.processIdentifier()) {
@@ -541,10 +505,6 @@ pub fn handle_update(tile: &mut Tile, message: Message) -> Task<Message> {
                 }
             }
             command.execute(&tile.config);
-            let page_task = match tile.page {
-                Page::Settings => Task::done(Message::SwitchToPage(Page::Main)),
-                _ => Task::none(),
-            };
 
             let return_focus_task = match &command {
                 Function::OpenApp(_) | Function::GoogleSearch(_) => Task::none(),
@@ -574,12 +534,10 @@ pub fn handle_update(tile: &mut Tile, message: Message) -> Task<Message> {
             window::latest()
                 .map(|x| x.unwrap())
                 .map(Message::HideWindow)
-                .chain(page_task)
                 .chain(Task::done(Message::ClearSearchQuery))
                 .chain(return_focus_task)
                 .chain(paste_task)
         }
-
         Message::HideWindow(a) => {
             if tile.file_dialog_open {
                 return Task::none();
@@ -592,13 +550,11 @@ pub fn handle_update(tile: &mut Tile, message: Message) -> Task<Message> {
 
             Task::batch([window::close(a), Task::done(Message::ClearSearchResults)])
         }
-
         Message::ReturnFocus => {
             info!("Restoring frontmost app");
             tile.restore_frontmost();
             Task::none()
         }
-
         Message::FocusTextInput(update_query_char) => {
             match update_query_char {
                 Move::Forwards(query_char) => {
@@ -619,7 +575,6 @@ pub fn handle_update(tile: &mut Tile, message: Message) -> Task<Message> {
                     .map(move |x| Message::SearchQueryChanged(updated_query.clone(), x)),
             ])
         }
-
         Message::ToggleFavouriteApp(app_name) => {
             let ranking = match tile.options.by_name.get(&app_name) {
                 None => return Task::none(),
@@ -634,7 +589,6 @@ pub fn handle_update(tile: &mut Tile, message: Message) -> Task<Message> {
             tile.options.set_ranking(&app_name, ranking);
             Task::none()
         }
-
         Message::UpdateApps => {
             let mut new_options = get_installed_apps(tile.config.theme.show_icons);
             new_options.extend(tile.config.shells.iter().map(|x| x.to_app()));
@@ -658,20 +612,22 @@ pub fn handle_update(tile: &mut Tile, message: Message) -> Task<Message> {
 
             Task::none()
         }
-
         Message::ClearSearchResults => {
             tile.results = Vec::new();
             Task::none()
         }
         Message::WindowFocusChanged(wid, focused) => {
+            if Some(wid) == tile.settings_window {
+                return Task::none();
+            }
             tile.focused = focused;
+
             if !focused {
                 Task::done(Message::HideWindow(wid)).chain(Task::done(Message::ClearSearchQuery))
             } else {
                 Task::none()
             }
         }
-
         Message::EditClipboardHistory(action) => {
             if !tile.config.cbhist {
                 return Task::none();
@@ -721,12 +677,10 @@ pub fn handle_update(tile: &mut Tile, message: Message) -> Task<Message> {
             }
             Task::none()
         }
-
         Message::SetFileSearchSender(sender) => {
             tile.file_search_sender = Some(sender);
             Task::none()
         }
-
         Message::FileSearchResult(apps) => {
             assert!(apps.len() <= 50, "Batch must not exceed 50 results.");
             if tile.page == Page::FileSearch {
@@ -745,14 +699,12 @@ pub fn handle_update(tile: &mut Tile, message: Message) -> Task<Message> {
             }
             Task::none()
         }
-
         Message::FileSearchClear => {
             if tile.page == Page::FileSearch {
                 tile.results.clear();
             }
             Task::none()
         }
-
         Message::SearchQueryChanged(input, id) => {
             tile.focus_id = 0;
 
@@ -781,7 +733,6 @@ pub fn handle_update(tile: &mut Tile, message: Message) -> Task<Message> {
                 execute_query(tile, id)
             }
         }
-
         Message::OpenFileDialog(action) => {
             tile.file_dialog_open = true;
             let home = std::env::var("HOME").unwrap_or("/".to_string());
@@ -848,7 +799,6 @@ pub fn handle_update(tile: &mut Tile, message: Message) -> Task<Message> {
                 }
             }
         }
-
         Message::FileDialogResult(inner) => {
             tile.file_dialog_open = false;
             match inner {
@@ -856,7 +806,6 @@ pub fn handle_update(tile: &mut Tile, message: Message) -> Task<Message> {
                 None => Task::none(),
             }
         }
-
         Message::SetConfig(config) => {
             let mut final_config = tile.config.clone();
             match config.clone() {
@@ -1009,7 +958,6 @@ pub fn handle_update(tile: &mut Tile, message: Message) -> Task<Message> {
             tile.theme = tile.config.theme.clone().into();
             Task::none()
         }
-
         Message::ResetField(field) => {
             let default = Config::default();
             match field {
@@ -1059,7 +1007,6 @@ pub fn handle_update(tile: &mut Tile, message: Message) -> Task<Message> {
             }
             Task::none()
         }
-
         Message::WriteConfig(page_switch) => {
             let config_file_path =
                 std::env::var("HOME").unwrap_or("".to_string()) + "/.config/rustcast/config.toml";
@@ -1092,17 +1039,14 @@ pub fn handle_update(tile: &mut Tile, message: Message) -> Task<Message> {
                 },
             ])
         }
-
         Message::ClearClipboardHistory => {
             tile.clipboard_content.clear();
             Task::none()
         }
-
         Message::SimulatePaste(pid) => {
             crate::platform::simulate_paste(pid);
             Task::none()
         }
-
         Message::ThemeModeChanged(is_dark) => {
             if tile.config.theme.theme_mode == ThemeMode::System {
                 let (text, bg) = ThemeMode::System.presets(is_dark);
@@ -1112,7 +1056,6 @@ pub fn handle_update(tile: &mut Tile, message: Message) -> Task<Message> {
             }
             Task::none()
         }
-
         Message::DebouncedSearch(id) => {
             // Only execute if this is still the most recent debounce timer
             if !tile.debouncer.is_ready() {
@@ -1121,6 +1064,16 @@ pub fn handle_update(tile: &mut Tile, message: Message) -> Task<Message> {
 
             execute_query(tile, id)
         }
+        Message::OpenSettingsWindow => {
+            if let Some(id) = tile.settings_window {
+                window::gain_focus(id)
+            } else {
+                let (id, task) = window::open(settings_window_settings());
+                tile.settings_window = Some(id);
+                task.map(move |_| Message::SettingsWindowOpened(id))
+            }
+        }
+        Message::SettingsWindowOpened(_id) => Task::none(),
     }
 }
 
@@ -1212,13 +1165,8 @@ fn execute_query(tile: &mut Tile, id: Id) -> Task<Message> {
     let mut task = Task::none();
     let prev_size = tile.results.len();
 
-    match tile.page {
-        Page::ClipboardHistory | Page::Settings => {
-            if tile.query_lc != "main" {
-                return Task::none();
-            }
-        }
-        _ => {}
+    if tile.page == Page::ClipboardHistory && tile.query_lc != "main" {
+        return Task::none();
     }
 
     if tile.page == Page::Main && tile.query_lc.is_empty() {
@@ -1452,11 +1400,6 @@ mod tests {
                     )),
                     0,
                 ),
-                test_app(
-                    "message",
-                    AppCommand::Message(Message::SwitchToPage(Page::Settings)),
-                    0,
-                ),
                 test_app("display", AppCommand::Display, 0),
             ]),
             emoji_apps: AppIndex::empty(),
@@ -1486,6 +1429,7 @@ mod tests {
             file_dialog_open: false,
             settings_tab: crate::app::SettingsTab::General,
             debouncer: crate::debounce::Debouncer::new(10),
+            settings_window: None,
         }
     }
 
@@ -1521,10 +1465,6 @@ mod tests {
             classify_query_action(&Page::Main, "fav", "fav"),
             Some(QueryAction::ShowFavourites)
         );
-        assert_eq!(
-            classify_query_action(&Page::Settings, "main", "main"),
-            Some(QueryAction::SwitchToPage(Page::Main))
-        );
     }
 
     #[test]
@@ -1549,11 +1489,6 @@ mod tests {
             test_app(
                 "openable",
                 AppCommand::Function(Function::OpenApp("/Applications/Openable.app".to_string())),
-                0,
-            ),
-            test_app(
-                "message",
-                AppCommand::Message(Message::SwitchToPage(Page::Settings)),
                 0,
             ),
             test_app("display", AppCommand::Display, 0),
