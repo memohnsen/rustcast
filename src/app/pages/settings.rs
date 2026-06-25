@@ -9,12 +9,13 @@ use iced::widget::Slider;
 use iced::widget::Space;
 use iced::widget::TextInput;
 use iced::widget::button;
-use iced::widget::checkbox;
 use iced::widget::radio;
 use iced::widget::text_input;
+use iced::widget::toggler;
 
 use crate::styles::settings_contents_container_style;
 use crate::styles::settings_tabs_container_style;
+use crate::styles::settings_toggle_style;
 use crate::styles::tint;
 use crate::styles::with_alpha;
 
@@ -30,7 +31,6 @@ use crate::config::Shelly;
 use crate::config::ThemeMode;
 use crate::styles::delete_button_style;
 use crate::styles::settings_add_button_style;
-use crate::styles::settings_checkbox_style;
 use crate::styles::settings_radio_button_style;
 use crate::styles::settings_save_button_style;
 use crate::styles::settings_slider_style;
@@ -130,7 +130,7 @@ fn tab_button(
 fn reset_button(theme: crate::config::Theme, field: ResetField) -> Element<'static, Message> {
     let theme_clone = theme.clone();
     Button::new(
-        Text::new("R")
+        Text::new("⟳")
             .align_x(Alignment::Center)
             .align_y(Alignment::Center)
             .size(13)
@@ -245,12 +245,11 @@ fn general_tab(config: Box<Config>, theme: crate::config::Theme) -> Column<'stat
         theme.clone(),
     );
 
-    let theme_clone = theme.clone();
     let start_at_login = settings_row_with_reset(
         settings_item_row([
             settings_hint_text(theme.clone(), "Start at login"),
-            checkbox(config.clone().start_at_login)
-                .style(move |_, _| settings_checkbox_style(&theme_clone))
+            toggler(config.clone().start_at_login)
+                .style(move |_, status| settings_toggle_style(status))
                 .on_toggle(Message::ToggleAutoStartup)
                 .into(),
             notice_item(theme.clone(), "If you want rustcast to start on login"),
@@ -259,12 +258,11 @@ fn general_tab(config: Box<Config>, theme: crate::config::Theme) -> Column<'stat
         theme.clone(),
     );
 
-    let theme_clone = theme.clone();
     let auto_update = settings_row_with_reset(
         settings_item_row([
             settings_hint_text(theme.clone(), "Auto update"),
-            checkbox(config.clone().auto_update)
-                .style(move |_, _| settings_checkbox_style(&theme_clone))
+            toggler(config.clone().auto_update)
+                .style(move |_, status| settings_toggle_style(status))
                 .on_toggle(move |input| Message::SetConfig(SetConfigFields::SetAutoUpdate(input)))
                 .into(),
             notice_item(
@@ -276,12 +274,11 @@ fn general_tab(config: Box<Config>, theme: crate::config::Theme) -> Column<'stat
         theme.clone(),
     );
 
-    let theme_clone = theme.clone();
     let haptic = settings_row_with_reset(
         Row::from_iter([
             settings_hint_text(theme.clone(), "Haptic feedback"),
-            checkbox(config.clone().haptic_feedback)
-                .style(move |_, _| settings_checkbox_style(&theme_clone))
+            toggler(config.clone().haptic_feedback)
+                .style(move |_, status| settings_toggle_style(status))
                 .on_toggle(|input| Message::SetConfig(SetConfigFields::HapticFeedback(input)))
                 .into(),
             notice_item(
@@ -297,12 +294,11 @@ fn general_tab(config: Box<Config>, theme: crate::config::Theme) -> Column<'stat
         theme.clone(),
     );
 
-    let theme_clone = theme.clone();
     let tray_icon = settings_row_with_reset(
         settings_item_row([
             settings_hint_text(theme.clone(), "Show menubar icon"),
-            checkbox(config.clone().show_trayicon)
-                .style(move |_, _| settings_checkbox_style(&theme_clone))
+            toggler(config.clone().show_trayicon)
+                .style(move |_, status| settings_toggle_style(status))
                 .on_toggle(|input| Message::SetConfig(SetConfigFields::ShowMenubarIcon(input)))
                 .into(),
             notice_item(
@@ -314,12 +310,11 @@ fn general_tab(config: Box<Config>, theme: crate::config::Theme) -> Column<'stat
         theme.clone(),
     );
 
-    let theme_clone = theme.clone();
     let clipboard_history = settings_row_with_reset(
         Row::from_iter([
             settings_hint_text(theme.clone(), "Enable Clipboard history"),
-            checkbox(config.clone().cbhist)
-                .style(move |_, _| settings_checkbox_style(&theme_clone))
+            toggler(config.clone().cbhist)
+                .style(move |_, status| settings_toggle_style(status))
                 .on_toggle(|input| Message::SetConfig(SetConfigFields::ClipboardHistory(input)))
                 .into(),
             notice_item(
@@ -335,12 +330,11 @@ fn general_tab(config: Box<Config>, theme: crate::config::Theme) -> Column<'stat
         theme.clone(),
     );
 
-    let theme_clone = theme.clone();
     let cbhist_paste_on_select = settings_row_with_reset(
         Row::from_iter([
             settings_hint_text(theme.clone(), "Paste on select"),
-            checkbox(config.clone().cbhist_paste_on_select)
-                .style(move |_, _| settings_checkbox_style(&theme_clone))
+            toggler(config.clone().cbhist_paste_on_select)
+                .style(move |_, status| settings_toggle_style(status))
                 .on_toggle(|input| {
                     Message::SetConfig(SetConfigFields::ClipboardPasteOnSelect(input))
                 })
@@ -481,12 +475,11 @@ fn appearance_tab(config: Box<Config>, theme: crate::config::Theme) -> Column<'s
         theme.clone(),
     );
 
-    let theme_clone = theme.clone();
     let show_scrollbar = settings_row_with_reset(
         settings_item_row([
             settings_hint_text(theme.clone(), "Show scrollbar"),
-            checkbox(config.theme.show_scroll_bar)
-                .style(move |_, _| settings_checkbox_style(&theme_clone))
+            toggler(config.theme.show_scroll_bar)
+                .style(move |_, status| settings_toggle_style(status))
                 .on_toggle(|input| {
                     Message::SetConfig(SetConfigFields::SetThemeFields(
                         SetConfigThemeFields::ShowScrollBar(input),
@@ -499,12 +492,11 @@ fn appearance_tab(config: Box<Config>, theme: crate::config::Theme) -> Column<'s
         theme.clone(),
     );
 
-    let theme_clone = theme.clone();
     let clear_on_hide = settings_row_with_reset(
         settings_item_row([
             settings_hint_text(theme.clone(), "Clear on hide"),
-            checkbox(config.clone().buffer_rules.clear_on_hide)
-                .style(move |_, _| settings_checkbox_style(&theme_clone))
+            toggler(config.clone().buffer_rules.clear_on_hide)
+                .style(move |_, status| settings_toggle_style(status))
                 .on_toggle(move |input| {
                     Message::SetConfig(SetConfigFields::SetBufferFields(
                         SetConfigBufferFields::ClearOnHide(input),
@@ -520,12 +512,11 @@ fn appearance_tab(config: Box<Config>, theme: crate::config::Theme) -> Column<'s
         theme.clone(),
     );
 
-    let theme_clone = theme.clone();
     let clear_on_enter = settings_row_with_reset(
         settings_item_row([
             settings_hint_text(theme.clone(), "Clear on enter"),
-            checkbox(config.clone().buffer_rules.clear_on_enter)
-                .style(move |_, _| settings_checkbox_style(&theme_clone))
+            toggler(config.clone().buffer_rules.clear_on_enter)
+                .style(move |_, status| settings_toggle_style(status))
                 .on_toggle(move |input| {
                     Message::SetConfig(SetConfigFields::SetBufferFields(
                         SetConfigBufferFields::ClearOnEnter(input),
@@ -541,12 +532,11 @@ fn appearance_tab(config: Box<Config>, theme: crate::config::Theme) -> Column<'s
         theme.clone(),
     );
 
-    let theme_clone = theme.clone();
     let show_icons = settings_row_with_reset(
         settings_item_row([
             settings_hint_text(theme.clone(), "Show icons"),
-            checkbox(config.clone().theme.show_icons)
-                .style(move |_, _| settings_checkbox_style(&theme_clone))
+            toggler(config.clone().theme.show_icons)
+                .style(move |_, status| settings_toggle_style(status))
                 .on_toggle(move |input| {
                     Message::SetConfig(SetConfigFields::SetThemeFields(
                         SetConfigThemeFields::ShowIcons(input),

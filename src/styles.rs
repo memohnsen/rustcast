@@ -2,7 +2,8 @@
 use crate::config::Theme as ConfigTheme;
 use iced::Shadow;
 use iced::border::Radius;
-use iced::widget::{button, checkbox, container, radio, scrollable, slider};
+use iced::widget::toggler::Status;
+use iced::widget::{button, checkbox, container, radio, scrollable, slider, toggler};
 use iced::{Background, Border, Color, widget::text_input};
 
 /// Helper: mix base color with white (simple “tint”)
@@ -332,16 +333,53 @@ pub fn settings_contents_container_style(theme: &ConfigTheme) -> container::Styl
     }
 }
 
-pub fn settings_checkbox_style(theme: &ConfigTheme) -> checkbox::Style {
-    checkbox::Style {
-        background: Background::Color(Color::TRANSPARENT),
-        icon_color: theme.text_color(1.),
-        border: iced::Border {
-            color: theme.text_color(1.),
-            width: 1.,
-            radius: Radius::new(2.),
+pub fn settings_toggle_style(status: toggler::Status) -> toggler::Style {
+    match status {
+        Status::Active { is_toggled } => toggler::Style {
+            background: if is_toggled {
+                Background::Color(Color::from_rgb8(52, 199, 89)) // iOS System Green
+            } else {
+                Background::Color(Color::from_rgb8(174, 174, 178)) // iOS Gray
+            },
+            background_border_width: 0.0,
+            background_border_color: Color::TRANSPARENT,
+            foreground: Background::Color(Color::WHITE),
+            foreground_border_width: 0.0,
+            foreground_border_color: Color::TRANSPARENT,
+            text_color: Some(Color::BLACK),
+            border_radius: None,
+            padding_ratio: 0.05,
         },
-        text_color: None,
+        Status::Hovered { is_toggled } => toggler::Style {
+            background: if is_toggled {
+                Background::Color(Color::from_rgb8(48, 183, 82)) // Slightly deeper green
+            } else {
+                Background::Color(Color::from_rgb8(218, 218, 219)) // Slightly darker track gray
+            },
+            background_border_width: 0.0,
+            background_border_color: Color::TRANSPARENT,
+            foreground: Background::Color(Color::WHITE),
+            foreground_border_width: 0.0,
+            foreground_border_color: Color::TRANSPARENT,
+            text_color: Some(Color::BLACK),
+            border_radius: None,
+            padding_ratio: 0.05,
+        },
+        Status::Disabled { is_toggled } => toggler::Style {
+            background: if is_toggled {
+                Background::Color(Color::from_rgb8(179, 238, 194)) // Desaturated translucent green
+            } else {
+                Background::Color(Color::from_rgb8(242, 242, 247)) // Very faint gray
+            },
+            background_border_width: 0.0,
+            background_border_color: Color::TRANSPARENT,
+            foreground: Background::Color(Color::from_rgb8(250, 250, 250)), // Off-white handle
+            foreground_border_width: 0.0,
+            foreground_border_color: Color::TRANSPARENT,
+            text_color: Some(Color::from_rgb8(174, 174, 178)), // iOS Gray
+            border_radius: None,
+            padding_ratio: 0.05,
+        },
     }
 }
 
