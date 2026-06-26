@@ -3,7 +3,7 @@ use crate::config::Theme as ConfigTheme;
 use iced::Shadow;
 use iced::border::Radius;
 use iced::widget::toggler::Status;
-use iced::widget::{button, checkbox, container, radio, scrollable, slider, toggler};
+use iced::widget::{button, container, radio, scrollable, slider, toggler};
 use iced::{Background, Border, Color, widget::text_input};
 
 /// Helper: mix base color with white (simple “tint”)

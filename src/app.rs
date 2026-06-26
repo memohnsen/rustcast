@@ -237,8 +237,8 @@ pub fn settings_window_settings() -> window::Settings {
         transparent: false,
         blur: false,
         size: iced::Size {
-            width: 800.,
-            height: 478.,
+            width: 900.,
+            height: 600.,
         },
         position: window::Position::Centered,
         ..Default::default()
