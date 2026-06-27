@@ -745,6 +745,7 @@ fn section_header_with_reset(
 ) -> Element<'static, Message> {
     Row::from_iter([
         settings_hint_text(theme.clone(), label, None::<String>),
+        Space::new().width(Length::Fill).into(),
         reset_button(theme, field),
     ])
     .align_y(Alignment::Center)

@@ -1011,6 +1011,7 @@ pub fn handle_update(tile: &mut Tile, message: Message) -> Task<Message> {
                     tile.config.cbhist_paste_on_select = default.cbhist_paste_on_select
                 }
             }
+            tile.theme = tile.config.theme.clone().into();
             Task::none()
         }
         Message::WriteConfig => {
