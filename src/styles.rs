@@ -2,7 +2,7 @@
 use crate::config::Theme as ConfigTheme;
 use iced::Shadow;
 use iced::border::Radius;
-use iced::overlay::menu::{self, Menu};
+use iced::overlay::menu::{self};
 use iced::widget::toggler::Status;
 use iced::widget::{button, container, pick_list, radio, scrollable, slider, toggler};
 use iced::{Background, Border, Color, widget::text_input};

@@ -41,7 +41,7 @@ pub fn new(hotkeys: Hotkeys, config: &Config) -> (Tile, Task<Message>) {
 
     let events = Event::get_events(config.event_duration);
 
-    let pos = config.window_location.clone();
+    let pos = config.window_location;
 
     let open = open.discard().chain(window::run(id, move |handle| {
         platform::window_config(

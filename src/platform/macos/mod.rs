@@ -75,7 +75,7 @@ pub fn screen_with_mouse() -> Retained<NSScreen> {
 }
 
 /// This carries out the window configuration for the macos window (only things that are macos specific)
-pub(super) fn macos_window_config(handle: &WindowHandle, position: Position) {
+pub(super) fn macos_window_config(handle: &WindowHandle, _position: Position) {
     use iced::wgpu::rwh::RawWindowHandle;
     use objc2::rc::Retained;
     use objc2_app_kit::NSView;

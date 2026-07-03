@@ -296,7 +296,7 @@ impl Tile {
                             } else if modifiers.command() {
                                 s.parse::<usize>()
                                     .ok()
-                                    .filter(|&n| n >= 1 && n <= 9)
+                                    .filter(|&n| (1..=9).contains(&n))
                                     .map(|n| Message::OpenResult((n - 1) as u32))
                             } else if s == "p" && modifiers.control() {
                                 Some(Message::ChangeFocus(ArrowKey::Up, 1))
