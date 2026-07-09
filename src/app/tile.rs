@@ -86,7 +86,7 @@ impl AppIndex {
 
     fn get_rankings(&self) -> HashMap<String, i32> {
         HashMap::from_iter(self.by_name.iter().filter_map(|(name, app)| {
-            if app.ranking > 0 {
+            if app.ranking != 0 {
                 Some((name.to_owned(), app.ranking.to_owned()))
             } else {
                 None
@@ -671,7 +671,7 @@ mod tests {
         index.set_ranking("notes", -1);
 
         assert_eq!(index.get_rankings().get("safari"), Some(&2));
-        assert_eq!(index.get_rankings().get("notes"), None);
+        assert_eq!(index.get_rankings().get("notes"), Some(&-1));
 
         let top_ranked = index.top_ranked(2);
         assert_eq!(top_ranked.len(), 2);
