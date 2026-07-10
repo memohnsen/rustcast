@@ -5,7 +5,7 @@
 use std::io::Cursor;
 
 use iced::{
-    Alignment, Background, Color, Element,
+    Alignment, Element,
     Length::{self, Fill},
     border::Radius,
     widget::{
@@ -104,9 +104,7 @@ impl AppIcon {
     }
 
     pub fn from_handle(handle: Option<Handle>) -> AppIcon {
-        handle
-            .map(|x| AppIcon::ImageHandle(x))
-            .unwrap_or(AppIcon::None)
+        handle.map(AppIcon::ImageHandle).unwrap_or(AppIcon::None)
     }
 }
 

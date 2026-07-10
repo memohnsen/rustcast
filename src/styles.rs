@@ -1,7 +1,6 @@
 //! This handles most of the styling for the rustcast elements
 use crate::config::Theme as ConfigTheme;
 use iced::Shadow;
-use iced::Theme;
 use iced::border::Radius;
 use iced::overlay::menu::{self};
 use iced::widget::toggler::Status;

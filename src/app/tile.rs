@@ -6,7 +6,7 @@ use crate::app::apps::App;
 use crate::app::{ArrowKey, Message, Move, Page};
 use crate::autoupdate::new_version_available;
 use crate::clipboard::ClipBoardContentType;
-use crate::config::{Config, Shelly, Theme};
+use crate::config::{Config, Shelly};
 use crate::debounce::Debouncer;
 use crate::platform::default_app_paths;
 use crate::platform::macos::events::Event;
@@ -606,7 +606,7 @@ fn handle_file_search() -> impl futures::Stream<Item = Message> {
 #[allow(clippy::items_after_test_module)]
 mod tests {
     use super::*;
-    use crate::app::apps::{App, AppCommand};
+    use crate::app::apps::{App, AppCommand, AppIcon};
     use crate::commands::Function;
     use iced::futures::StreamExt;
     use tokio::io::{AsyncWriteExt, duplex};
@@ -618,7 +618,7 @@ mod tests {
                 "/Applications/{name}.app"
             ))),
             desc: "Application".to_string(),
-            icons: None,
+            icons: AppIcon::None,
             display_name: name.to_string(),
             search_name: name.to_lowercase(),
         }
