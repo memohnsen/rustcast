@@ -18,7 +18,7 @@ use iced::futures::SinkExt;
 use iced::futures::channel::mpsc::{Sender, channel};
 use iced::keyboard::Modifiers;
 use iced::{
-    Subscription, Theme, futures,
+    Subscription, futures,
     keyboard::{self, key::Named},
     stream,
 };
@@ -232,8 +232,8 @@ impl Hotkeys {
 
 impl Tile {
     /// This returns the theme of the window
-    pub fn theme(&self, _: window::Id) -> Option<Theme> {
-        Some(self.theme.clone())
+    pub fn theme(&self, _: window::Id) -> Option<iced::Theme> {
+        Some(self.config.theme.clone().into())
     }
 
     /// This handles the subscriptions of the window
@@ -606,7 +606,7 @@ fn handle_file_search() -> impl futures::Stream<Item = Message> {
 #[allow(clippy::items_after_test_module)]
 mod tests {
     use super::*;
-    use crate::app::apps::{App, AppCommand};
+    use crate::app::apps::{App, AppCommand, AppIcon};
     use crate::commands::Function;
     use iced::futures::StreamExt;
     use tokio::io::{AsyncWriteExt, duplex};
@@ -618,7 +618,7 @@ mod tests {
                 "/Applications/{name}.app"
             ))),
             desc: "Application".to_string(),
-            icons: None,
+            icons: AppIcon::None,
             display_name: name.to_string(),
             search_name: name.to_lowercase(),
         }
