@@ -31,6 +31,7 @@ use crate::{
 /// Returns:
 /// - the iced Element to render
 pub fn clipboard_view(
+    query: String,
     clipboard_content: Vec<ClipBoardContentType>,
     focussed_id: u32,
     theme: Theme,
@@ -60,12 +61,24 @@ pub fn clipboard_view(
         };
 
     let row_render_theme = theme.clone();
+    let query = query.clone();
     container(Row::from_iter([
         container(
             Scrollable::with_direction(
-                Column::from_iter(clipboard_content.iter().enumerate().map(|(i, content)| {
-                    content.render_row(i == focussed_id as usize, &row_render_theme)
-                }))
+                Column::from_iter(
+                    clipboard_content
+                        .iter()
+                        .filter(|x| match x {
+                            ClipBoardContentType::Text(data) | ClipBoardContentType::Url(data) => {
+                                data.to_lowercase().contains(&query)
+                            }
+                            ClipBoardContentType::Image(_) => query == "image",
+                        } || query.trim().is_empty())
+                        .enumerate()
+                        .map(|(i, content)| {
+                            content.render_row(i == focussed_id as usize, &row_render_theme)
+                        }),
+                )
                 .width((WINDOW_WIDTH + 50.) / 3.),
                 Direction::Vertical(Scrollbar::hidden()),
             )

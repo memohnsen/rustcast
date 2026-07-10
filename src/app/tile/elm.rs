@@ -142,6 +142,7 @@ pub fn view(tile: &Tile, wid: window::Id) -> Element<'_, Message> {
 
         let results = match tile.page {
             Page::ClipboardHistory => clipboard_view(
+                tile.query_lc.clone(),
                 tile.clipboard_content.clone(),
                 tile.focus_id,
                 tile.config.theme.clone(),
