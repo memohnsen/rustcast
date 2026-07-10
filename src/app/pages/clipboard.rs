@@ -1,6 +1,6 @@
 //! The elements for the clipboard history page
 use iced::{
-    Color, ContentFit,
+    ContentFit,
     border::Radius,
     widget::{
         Scrollable,
@@ -13,11 +13,11 @@ use iced::{
 };
 
 use crate::{
-    app::{Editable, ToApp, pages::prelude::*},
+    app::{Editable, pages::prelude::*},
     clipboard::ClipBoardContentType,
     styles::{
         delete_button_style, open_button_style, open_icon, settings_text_input_item_style,
-        trash_icon, url_icon, with_alpha,
+        trash_icon, with_alpha,
     },
 };
 

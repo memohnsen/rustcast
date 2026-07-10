@@ -22,12 +22,11 @@ use crate::app::tile::{AppIndex, Hotkeys};
 use crate::app::{DEFAULT_WINDOW_HEIGHT, SettingsTab, ToApp, ToApps};
 use crate::config::Theme;
 use crate::debounce::Debouncer;
+use crate::platform;
 use crate::platform::macos::events::Event;
 use crate::styles::{
-    contents_style, glass_border, glass_surface, results_scrollbar_style,
-    rustcast_text_input_style, with_alpha,
+    contents_style, glass_border, glass_surface, results_scrollbar_style, rustcast_text_input_style,
 };
-use crate::{app::WINDOW_WIDTH, platform};
 use crate::{app::pages::clipboard::clipboard_view, platform::get_installed_apps};
 use crate::{
     app::{Message, Page, apps::App, default_settings, tile::Tile},

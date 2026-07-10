@@ -4,13 +4,9 @@ use iced::{
     Alignment, Element, Length,
     widget::{Button, Text, container, row},
 };
-use objc2_foundation::NSProgressFileOperationKindReceiving;
 
 use crate::{
-    app::{
-        Message, ToApp,
-        apps::{App, AppIcon},
-    },
+    app::Message,
     commands::Function,
     styles::{image_icon, result_button_style, result_row_container_style, text_icon, url_icon},
 };
