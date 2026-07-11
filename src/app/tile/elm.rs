@@ -22,11 +22,11 @@ use crate::app::tile::{AppIndex, Hotkeys};
 use crate::app::{DEFAULT_WINDOW_HEIGHT, SettingsTab, ToApp, ToApps};
 use crate::config::Theme;
 use crate::debounce::Debouncer;
+use crate::platform;
 use crate::platform::macos::events::Event;
 use crate::styles::{
     contents_style, glass_border, glass_surface, results_scrollbar_style, rustcast_text_input_style,
 };
-use crate::{app::WINDOW_WIDTH, platform};
 use crate::{app::pages::clipboard::clipboard_view, platform::get_installed_apps};
 use crate::{
     app::{Message, Page, apps::App, default_settings, tile::Tile},
@@ -143,6 +143,7 @@ pub fn view(tile: &Tile, wid: window::Id) -> Element<'_, Message> {
 
         let results = match tile.page {
             Page::ClipboardHistory => clipboard_view(
+                tile.query_lc.clone(),
                 tile.clipboard_content.clone(),
                 tile.focus_id,
                 tile.config.theme.clone(),
@@ -270,7 +271,7 @@ fn footer(theme: Theme, current_mode: String, text: String) -> Element<'static, 
     )
     .align_y(Alignment::Center)
     .center(Length::Fill)
-    .width(WINDOW_WIDTH)
+    .width(Length::Fill)
     .padding(5)
     .height(30)
     .style(move |_| container::Style {

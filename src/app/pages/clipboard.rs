@@ -5,6 +5,7 @@ use iced::{
     widget::{
         Scrollable,
         image::{Handle, Viewer},
+        rule,
         scrollable::{Direction, Scrollbar},
         text::Wrapping,
         text_input,
@@ -12,9 +13,12 @@ use iced::{
 };
 
 use crate::{
-    app::{Editable, ToApp, pages::prelude::*},
+    app::{Editable, pages::prelude::*},
     clipboard::ClipBoardContentType,
-    styles::{delete_button_style, settings_text_input_item_style},
+    styles::{
+        delete_button_style, open_button_style, open_icon, settings_text_input_item_style,
+        trash_icon, with_alpha,
+    },
 };
 
 /// The clipboard view
@@ -27,6 +31,7 @@ use crate::{
 /// Returns:
 /// - the iced Element to render
 pub fn clipboard_view(
+    query: String,
     clipboard_content: Vec<ClipBoardContentType>,
     focussed_id: u32,
     theme: Theme,
@@ -54,15 +59,27 @@ pub fn clipboard_view(
             Some(content) => viewport_content(content, &theme),
             None => Text::new("").into(),
         };
+
+    let row_render_theme = theme.clone();
+    let query = query.clone();
     container(Row::from_iter([
         container(
             Scrollable::with_direction(
-                Column::from_iter(clipboard_content.iter().enumerate().map(|(i, content)| {
-                    content
-                        .to_app()
-                        .render(theme.clone(), i as u32, focussed_id, None)
-                }))
-                .width(WINDOW_WIDTH / 3.),
+                Column::from_iter(
+                    clipboard_content
+                        .iter()
+                        .filter(|x| match x {
+                            ClipBoardContentType::Text(data) | ClipBoardContentType::Url(data) => {
+                                data.to_lowercase().contains(&query)
+                            }
+                            ClipBoardContentType::Image(_) => query == "image",
+                        } || query.trim().is_empty())
+                        .enumerate()
+                        .map(|(i, content)| {
+                            content.render_row(i == focussed_id as usize, &row_render_theme)
+                        }),
+                )
+                .width((WINDOW_WIDTH + 50.) / 3.),
                 Direction::Vertical(Scrollbar::hidden()),
             )
             .id("results"),
@@ -70,11 +87,19 @@ pub fn clipboard_view(
         .height(10000)
         .style(move |_| result_row_container_style(&theme_clone_2, false))
         .into(),
+        rule::vertical(0.3)
+            .style(|iced_theme: &iced::Theme| rule::Style {
+                color: with_alpha(iced_theme.palette().text, 0.7),
+                radius: Radius::new(0),
+                fill_mode: rule::FillMode::Full,
+                snap: true,
+            })
+            .into(),
         container(viewport_content)
             .height(10000)
             .padding(10)
             .style(move |_| result_row_container_style(&theme_clone, false))
-            .width((WINDOW_WIDTH / 3.) * 2.)
+            .width(((WINDOW_WIDTH + 50.) / 3.) * 2.)
             .into(),
     ]))
     .height(280)
@@ -83,25 +108,27 @@ pub fn clipboard_view(
 
 fn viewport_content(content: &ClipBoardContentType, theme: &Theme) -> Element<'static, Message> {
     let viewer: Element<'static, Message> = match content {
-        ClipBoardContentType::Text(txt) => Scrollable::with_direction(
-            container(
-                Text::new(txt.to_owned())
-                    .height(Length::Fill)
-                    .width(Length::Fill)
-                    .align_x(Alignment::Start)
-                    .font(theme.font())
-                    .size(16),
+        ClipBoardContentType::Text(txt) | ClipBoardContentType::Url(txt) => {
+            Scrollable::with_direction(
+                container(
+                    Text::new(txt.to_owned())
+                        .height(Length::Fill)
+                        .width(Length::Fill)
+                        .align_x(Alignment::Start)
+                        .font(theme.font())
+                        .size(16),
+                )
+                .width(Length::Fill)
+                .height(Length::Fill),
+                Direction::Both {
+                    vertical: Scrollbar::hidden(),
+                    horizontal: Scrollbar::hidden(),
+                },
             )
+            .height(Length::Fill)
             .width(Length::Fill)
-            .height(Length::Fill),
-            Direction::Both {
-                vertical: Scrollbar::hidden(),
-                horizontal: Scrollbar::hidden(),
-            },
-        )
-        .height(Length::Fill)
-        .width(Length::Fill)
-        .into(),
+            .into()
+        }
 
         ClipBoardContentType::Image(data) => {
             let bytes = data.to_owned_img().into_owned_bytes();
@@ -124,6 +151,7 @@ fn viewport_content(content: &ClipBoardContentType, theme: &Theme) -> Element<'s
                 },
                 ..Default::default()
             })
+            .height(Length::Fill)
             .width(Length::Fill)
             .into()
         }
@@ -131,16 +159,48 @@ fn viewport_content(content: &ClipBoardContentType, theme: &Theme) -> Element<'s
 
     let theme_clone = theme.clone();
     let theme_clone_2 = theme.clone();
+    let horizontal_line = rule::horizontal(0.3).style(|them: &iced::Theme| rule::Style {
+        color: with_alpha(them.palette().text, 0.7),
+        radius: Radius::new(0),
+        fill_mode: rule::FillMode::Full,
+        snap: true,
+    });
+    let open_url_option = match content {
+        ClipBoardContentType::Url(url) => Button::new(
+            open_icon()
+                .width(Length::Fill)
+                .height(Length::Fill)
+                .center(),
+        )
+        .on_press(Message::RunFunction(
+            crate::commands::Function::OpenWebsite(url.clone()),
+        ))
+        .height(30)
+        .width(30)
+        .style(open_button_style)
+        .into(),
+        _ => iced::widget::space().width(0).into(),
+    };
     Column::from_iter([
         viewer,
+        horizontal_line.into(),
         container(
             Row::from_iter([
-                Button::new("Delete")
-                    .on_press(Message::EditClipboardHistory(Editable::Delete(
-                        content.to_owned(),
-                    )))
-                    .style(move |_, _| delete_button_style(&theme_clone))
-                    .into(),
+                open_url_option,
+                iced::widget::space().width(Length::Fill).into(),
+                Button::new(
+                    trash_icon()
+                        .width(Length::Fill)
+                        .height(Length::Fill)
+                        .center(),
+                )
+                .width(30)
+                .height(30)
+                .on_press(Message::EditClipboardHistory(Editable::Delete(
+                    content.to_owned(),
+                )))
+                .style(move |_, _| delete_button_style(&theme_clone))
+                .into(),
                 Button::new("Clear")
                     .on_press(Message::ClearClipboardHistory)
                     .style(move |_, _| delete_button_style(&theme_clone_2))
@@ -149,7 +209,7 @@ fn viewport_content(content: &ClipBoardContentType, theme: &Theme) -> Element<'s
             .spacing(10),
         )
         .width(Length::Fill)
-        .align_x(Alignment::Center)
+        .align_x(Alignment::End)
         .padding(10)
         .into(),
     ])
