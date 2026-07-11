@@ -1,5 +1,7 @@
 use std::{
+    env,
     io::Cursor,
+    path::Path,
     time::{Duration, SystemTime, UNIX_EPOCH},
 };
 
@@ -10,8 +12,13 @@ use rusqlite::{Connection, params};
 use crate::clipboard::ClipBoardContentType;
 
 pub fn initialise_database() -> Connection {
-    let conn =
-        Connection::open("clipboard.db").expect("Couldn't open a connection to 'clipboard.db'");
+    let current_exe = env::current_exe()
+        .ok()
+        .and_then(|x| x.parent().map(|x| x.to_path_buf()))
+        .unwrap_or(Path::new("/tmp").to_path_buf());
+
+    let conn = Connection::open(current_exe.join(Path::new("clipboard.db")))
+        .expect("Couldn't open a connection to 'clipboard.db'");
 
     if !conn
         .table_exists(None, "clipboard_entries")
