@@ -1,42 +1,43 @@
-use std::ffi::{c_char, c_void};
+use std::{ffi::c_void, ptr::NonNull};
 
-use objc2_core_foundation::CFType;
+use objc2_core_foundation::{CFArray, CFRetained, CFString, CFType};
 
 type Boolean = u8;
-type CFIndex = isize;
 type OSStatus = i32;
-type CFStringEncoding = u32;
 type TISInputSourceRef = *const c_void;
 
-const K_CFSTRING_ENCODING_UTF8: CFStringEncoding = 0x0800_0100;
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct InputSource {
+    pub id: String,
+    pub name: String,
+}
+
+impl std::fmt::Display for InputSource {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{} ({})", self.name, self.id)
+    }
+}
 
 #[link(name = "Carbon", kind = "framework")]
 unsafe extern "C" {
-    static kTISPropertyInputSourceID: *const c_void;
+    static kTISPropertyInputSourceID: *const CFString;
+    static kTISPropertyLocalizedName: *const CFString;
 
     fn TISCopyCurrentKeyboardInputSource() -> TISInputSourceRef;
     fn TISCreateInputSourceList(
         properties: *const c_void,
         includeAllInstalled: Boolean,
-    ) -> *const c_void;
+    ) -> *const CFArray;
     fn TISGetInputSourceProperty(
         inputSource: TISInputSourceRef,
-        propertyKey: *const c_void,
+        propertyKey: *const CFString,
     ) -> *const c_void;
     fn TISSelectInputSource(inputSource: TISInputSourceRef) -> OSStatus;
 }
 
 #[link(name = "CoreFoundation", kind = "framework")]
 unsafe extern "C" {
-    fn CFArrayGetCount(theArray: *const c_void) -> CFIndex;
-    fn CFArrayGetValueAtIndex(theArray: *const c_void, idx: CFIndex) -> *const c_void;
     fn CFRelease(cf: *mut CFType);
-    fn CFStringGetCString(
-        theString: *const c_void,
-        buffer: *mut c_char,
-        bufferSize: CFIndex,
-        encoding: CFStringEncoding,
-    ) -> Boolean;
 }
 
 pub fn current_input_source_id() -> Option<String> {
@@ -51,21 +52,28 @@ pub fn current_input_source_id() -> Option<String> {
 }
 
 pub fn select_input_source(id: &str) -> Result<(), String> {
-    let sources = unsafe { TISCreateInputSourceList(std::ptr::null(), false as Boolean) };
-    if sources.is_null() {
+    let Some(sources) = input_source_list(false) else {
         return Err("TISCreateInputSourceList returned null".to_string());
-    }
+    };
 
-    let result = select_input_source_from_list(sources, id);
-    unsafe { CFRelease(sources.cast_mut().cast()) };
-    result
+    select_input_source_from_list(&sources, id)
 }
 
-fn select_input_source_from_list(sources: *const c_void, id: &str) -> Result<(), String> {
-    let count = unsafe { CFArrayGetCount(sources) };
+pub fn enabled_input_sources() -> Vec<InputSource> {
+    input_source_list(false)
+        .map(|sources| input_sources_from_list(&sources))
+        .unwrap_or_default()
+}
 
-    for idx in 0..count {
-        let source = unsafe { CFArrayGetValueAtIndex(sources, idx) };
+fn input_source_list(include_all_installed: bool) -> Option<CFRetained<CFArray>> {
+    let sources =
+        unsafe { TISCreateInputSourceList(std::ptr::null(), include_all_installed as Boolean) };
+    NonNull::new(sources.cast_mut()).map(|sources| unsafe { CFRetained::from_raw(sources) })
+}
+
+fn select_input_source_from_list(sources: &CFArray, id: &str) -> Result<(), String> {
+    for idx in 0..sources.count() {
+        let source = unsafe { sources.value_at_index(idx) };
         if source.is_null() {
             continue;
         }
@@ -83,6 +91,20 @@ fn select_input_source_from_list(sources: *const c_void, id: &str) -> Result<(),
     Err(format!("input source not found: {id}"))
 }
 
+fn input_sources_from_list(sources: &CFArray) -> Vec<InputSource> {
+    (0..sources.count())
+        .filter_map(|idx| {
+            let source = unsafe { sources.value_at_index(idx) };
+            if source.is_null() {
+                return None;
+            }
+            let id = input_source_id(source)?;
+            let name = input_source_name(source).unwrap_or_else(|| id.clone());
+            Some(InputSource { id, name })
+        })
+        .collect()
+}
+
 fn input_source_id(source: TISInputSourceRef) -> Option<String> {
     let id_ref = unsafe { TISGetInputSourceProperty(source, kTISPropertyInputSourceID) };
     if id_ref.is_null() {
@@ -92,21 +114,16 @@ fn input_source_id(source: TISInputSourceRef) -> Option<String> {
     cf_string_to_string(id_ref)
 }
 
-fn cf_string_to_string(value: *const c_void) -> Option<String> {
-    let mut buffer = vec![0u8; 1024];
-    let ok = unsafe {
-        CFStringGetCString(
-            value,
-            buffer.as_mut_ptr().cast(),
-            buffer.len() as CFIndex,
-            K_CFSTRING_ENCODING_UTF8,
-        )
-    };
-
-    if ok == 0 {
+fn input_source_name(source: TISInputSourceRef) -> Option<String> {
+    let name_ref = unsafe { TISGetInputSourceProperty(source, kTISPropertyLocalizedName) };
+    if name_ref.is_null() {
         return None;
     }
 
-    let nul = buffer.iter().position(|&byte| byte == 0)?;
-    Some(String::from_utf8_lossy(&buffer[..nul]).into_owned())
+    cf_string_to_string(name_ref)
+}
+
+fn cf_string_to_string(value: *const c_void) -> Option<String> {
+    NonNull::new(value.cast_mut().cast::<CFString>())
+        .map(|value| unsafe { value.as_ref() }.to_string())
 }

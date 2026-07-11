@@ -25,6 +25,7 @@ clipboard_hotkey = "SUPER+SHIFT+2"
 
 # Switch to this macOS input source when RustCast opens.
 # Leave unset to keep the current input source.
+# You can also configure this from the Settings page.
 # The input source must be enabled in macOS Keyboard settings.
 # Examples: "com.apple.keylayout.US", "com.apple.inputmethod.Kotoeri.RomajiTyping.Japanese"
 # input_source_on_open = "com.apple.keylayout.US"

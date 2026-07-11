@@ -978,6 +978,9 @@ pub fn handle_update(tile: &mut Tile, message: Message) -> Task<Message> {
                 SetConfigFields::ClipboardPasteOnSelect(v) => {
                     final_config.cbhist_paste_on_select = v
                 }
+                SetConfigFields::InputSourceOnOpen(input_source) => {
+                    final_config.input_source_on_open = input_source
+                }
                 SetConfigFields::ToDefault => {
                     final_config = Config::default();
                 }
