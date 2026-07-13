@@ -99,7 +99,7 @@ impl AppIcon {
                 .width(30)
                 .scale_step(0.)
                 .into(),
-            Self::None => space().into(),
+            Self::None => space().width(0).into(),
         }
     }
 
