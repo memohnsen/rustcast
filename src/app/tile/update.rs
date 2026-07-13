@@ -307,7 +307,8 @@ pub fn handle_update(tile: &mut Tile, message: Message) -> Task<Message> {
                 };
 
                 let quantity = match tile.page {
-                    Page::Main | Page::FileSearch | Page::ClipboardHistory => 56.,
+                    Page::Main | Page::FileSearch => 56.,
+                    Page::ClipboardHistory => 40.,
                     Page::EmojiSearch => 5.,
                 };
 

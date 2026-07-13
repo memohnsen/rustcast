@@ -300,7 +300,7 @@ impl App {
             .height(40);
 
         if theme.show_icons {
-            row = row.push(container(self.icons.render()).width(30).height(30));
+            row = row.push(container(self.icons.render()));
         }
         row = row
             .push(container(text_block).width(Fill))
