@@ -45,6 +45,7 @@ use crate::config::Config;
 use crate::config::MainPage;
 use crate::config::Position;
 use crate::config::ThemeMode;
+use crate::database::load_clipboard;
 use crate::database::store_clipboard_content;
 use crate::debounce::DebouncePolicy;
 use crate::platform::macos::events::Event;
@@ -147,6 +148,13 @@ pub fn handle_update(tile: &mut Tile, message: Message) -> Task<Message> {
             tile.events = Event::get_events(tile.config.event_duration);
             Task::none()
         }
+
+        Message::LoadClipboardData(limit) => {
+            info!("Loading {} clipboard items.", limit);
+            tile.clipboard_content = load_clipboard(&tile.conn, limit);
+            Task::none()
+        }
+
         Message::UriReceived(uri) => {
             let Ok(url) = Url::parse(&uri) else {
                 return Task::none();
@@ -660,14 +668,10 @@ pub fn handle_update(tile: &mut Tile, message: Message) -> Task<Message> {
             }
             match action {
                 Editable::Create(content) => {
-                    if tile.clipboard_content.len() >= 300 {
-                        //  hard limit of 300 items at once
-                        tile.clipboard_content.pop();
-                    }
-
                     if !tile.clipboard_content.contains(&content) {
                         store_clipboard_content(&tile.conn, &content);
                         tile.clipboard_content.insert(0, content);
+                        tile.clipboard_content.truncate(300);
                         return Task::none();
                     }
 
@@ -685,6 +689,7 @@ pub fn handle_update(tile: &mut Tile, message: Message) -> Task<Message> {
 
                     tile.clipboard_content = new_content_vec;
                     tile.clipboard_content.insert(0, content);
+                    tile.clipboard_content.truncate(300);
                 }
                 Editable::Delete(content) => {
                     tile.clipboard_content = tile
