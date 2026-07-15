@@ -21,6 +21,7 @@ use url::Url;
 
 use crate::app::Editable;
 use crate::app::FileDialogAction;
+use crate::app::HotkeyTarget;
 use crate::app::ResetField;
 use crate::app::SetConfigBufferFields;
 use crate::app::SetConfigFields;
@@ -125,13 +126,44 @@ fn refresh_global_handler(tile: &mut Tile) {
     }
 }
 
-fn is_available_hotkey(tile: &Tile, target: crate::app::HotkeyTarget, shortcut: &Shortcut) -> bool {
-    let other_builtin = match target {
-        crate::app::HotkeyTarget::Toggle => &tile.hotkeys.clipboard_hotkey,
-        crate::app::HotkeyTarget::Clipboard => &tile.hotkeys.toggle,
-    };
+fn sync_shell_hotkeys(tile: &mut Tile) {
+    tile.hotkeys.shells = tile
+        .config
+        .shells
+        .iter()
+        .filter_map(|shell| {
+            shell
+                .hotkey
+                .as_deref()
+                .and_then(|hotkey| Shortcut::parse(hotkey).ok())
+                .map(|hotkey| (hotkey, shell.clone()))
+        })
+        .collect();
+}
 
-    shortcut != other_builtin && !tile.hotkeys.shells.contains_key(shortcut)
+fn is_available_hotkey(
+    tile: &Tile,
+    target: &crate::app::HotkeyTarget,
+    shortcut: &Shortcut,
+) -> bool {
+    match target {
+        HotkeyTarget::Toggle => {
+            shortcut != &tile.hotkeys.clipboard_hotkey
+                && !tile.hotkeys.shells.contains_key(shortcut)
+        }
+        HotkeyTarget::Clipboard => {
+            shortcut != &tile.hotkeys.toggle && !tile.hotkeys.shells.contains_key(shortcut)
+        }
+        HotkeyTarget::Shell(shell) => {
+            shortcut != &tile.hotkeys.toggle
+                && shortcut != &tile.hotkeys.clipboard_hotkey
+                && tile
+                    .hotkeys
+                    .shells
+                    .get(shortcut)
+                    .is_none_or(|existing| existing == shell)
+        }
+    }
 }
 
 /// Handle the "elm" update
@@ -853,6 +885,7 @@ pub fn handle_update(tile: &mut Tile, message: Message) -> Task<Message> {
             }
         }
         Message::SetConfig(config) => {
+            let shell_commands_changed = matches!(&config, SetConfigFields::ShellCommands(_));
             let mut final_config = tile.config.clone();
             match config.clone() {
                 SetConfigFields::ClipboardHistory(cbhist) => final_config.cbhist = cbhist,
@@ -1006,6 +1039,10 @@ pub fn handle_update(tile: &mut Tile, message: Message) -> Task<Message> {
             };
 
             tile.config = final_config;
+            if shell_commands_changed {
+                sync_shell_hotkeys(tile);
+                refresh_global_handler(tile);
+            }
             tile.theme = tile.config.theme.clone().into();
             Task::none()
         }
@@ -1041,6 +1078,10 @@ pub fn handle_update(tile: &mut Tile, message: Message) -> Task<Message> {
                 if let Ok(shortcut) = Shortcut::parse(&tile.config.clipboard_hotkey) {
                     tile.hotkeys.clipboard_hotkey = shortcut;
                 }
+                refresh_global_handler(tile);
+            }
+            if field == ResetField::ShellCommands {
+                sync_shell_hotkeys(tile);
                 refresh_global_handler(tile);
             }
             tile.theme = tile.config.theme.clone().into();
@@ -1153,22 +1194,34 @@ pub fn handle_update(tile: &mut Tile, message: Message) -> Task<Message> {
                 candidate: Some(shortcut),
             } = &tile.hotkey_capture
             {
-                Some((*target, shortcut.clone()))
+                Some((target.clone(), shortcut.clone()))
             } else {
                 None
             };
 
             if let Some((target, shortcut)) = captured
-                && is_available_hotkey(tile, target, &shortcut)
+                && is_available_hotkey(tile, &target, &shortcut)
             {
                 match target {
-                    crate::app::HotkeyTarget::Toggle => {
+                    HotkeyTarget::Toggle => {
                         tile.config.toggle_hotkey = shortcut.to_config_string();
                         tile.hotkeys.toggle = shortcut;
                     }
-                    crate::app::HotkeyTarget::Clipboard => {
+                    HotkeyTarget::Clipboard => {
                         tile.config.clipboard_hotkey = shortcut.to_config_string();
                         tile.hotkeys.clipboard_hotkey = shortcut;
+                    }
+                    HotkeyTarget::Shell(shell) => {
+                        if let Some(updated_shell) = tile
+                            .config
+                            .shells
+                            .iter_mut()
+                            .find(|existing| **existing == shell)
+                        {
+                            updated_shell.hotkey = Some(shortcut.to_config_string());
+                            tile.hotkeys.shells.retain(|_, existing| existing != &shell);
+                            tile.hotkeys.shells.insert(shortcut, updated_shell.clone());
+                        }
                     }
                 }
             }

@@ -90,7 +90,7 @@ pub fn settings_page(
     let tab_content: Column<'static, Message> = match settings_tab {
         SettingsTab::General => general_tab(config.clone(), theme.clone(), hotkey_capture),
         SettingsTab::Appearance => appearance_tab(config.clone(), theme.clone()),
-        SettingsTab::Commands => commands_tab(config.clone(), theme.clone()),
+        SettingsTab::Commands => commands_tab(config.clone(), theme.clone(), hotkey_capture),
     };
 
     let contents_column = Column::from_iter([
@@ -501,9 +501,13 @@ fn hotkey_field(
             true,
         ),
         _ => (
-            Shortcut::parse(value)
-                .map(|shortcut| shortcut.display_string())
-                .unwrap_or_else(|_| value.to_string()),
+            if value.is_empty() {
+                "Click to record".to_string()
+            } else {
+                Shortcut::parse(value)
+                    .map(|shortcut| shortcut.display_string())
+                    .unwrap_or_else(|_| value.to_string())
+            },
             false,
         ),
     };
@@ -853,7 +857,11 @@ fn appearance_tab(config: Box<Config>, theme: crate::config::Theme) -> Column<'s
     .spacing(10)
 }
 
-fn commands_tab(config: Box<Config>, theme: crate::config::Theme) -> Column<'static, Message> {
+fn commands_tab(
+    config: Box<Config>,
+    theme: crate::config::Theme,
+    hotkey_capture: HotkeyCapture,
+) -> Column<'static, Message> {
     Column::from_iter([
         section_header_with_reset("Aliases", ResetField::Aliases, theme.clone()),
         aliases_item(config.aliases.clone(), &theme),
@@ -863,7 +871,7 @@ fn commands_tab(config: Box<Config>, theme: crate::config::Theme) -> Column<'sta
         search_dirs_item(&theme, config.search_dirs.clone()),
         Space::new().height(10).into(),
         section_header_with_reset("Shell commands", ResetField::ShellCommands, theme.clone()),
-        shell_commands_item(config.shells.clone(), theme.clone()),
+        shell_commands_item(config.shells.clone(), theme.clone(), hotkey_capture),
     ])
     .spacing(10)
 }
@@ -1186,9 +1194,17 @@ fn dir_adder_button(dir: &str, theme: Theme) -> Button<'static, Message> {
         .style(move |_, _| settings_add_button_style(&theme.clone()))
 }
 
-fn shell_commands_item(shells: Vec<Shelly>, theme: Theme) -> Element<'static, Message> {
-    let mut col =
-        Column::from_iter(shells.iter().map(|x| x.editable_render(theme.clone()))).spacing(30);
+fn shell_commands_item(
+    shells: Vec<Shelly>,
+    theme: Theme,
+    hotkey_capture: HotkeyCapture,
+) -> Element<'static, Message> {
+    let mut col = Column::from_iter(
+        shells
+            .iter()
+            .map(|shell| shell.editable_render(theme.clone(), hotkey_capture.clone())),
+    )
+    .spacing(30);
 
     let theme_clone = theme.clone();
 
@@ -1211,7 +1227,11 @@ fn shell_commands_item(shells: Vec<Shelly>, theme: Theme) -> Element<'static, Me
 }
 
 impl Shelly {
-    pub fn editable_render(&self, theme: Theme) -> Element<'static, Message> {
+    pub fn editable_render(
+        &self,
+        theme: Theme,
+        hotkey_capture: HotkeyCapture,
+    ) -> Element<'static, Message> {
         let shell = self.to_owned();
         Column::from_iter([
             tuple_row(
@@ -1292,24 +1312,12 @@ impl Shelly {
             .into(),
             tuple_row(
                 shellcommand_hint_text(theme.clone(), "Hotkey"),
-                text_input_cell(
-                    self.hotkey.clone().unwrap_or("".to_string()),
-                    &theme,
-                    "Hotkey",
-                )
-                .on_input({
-                    let shell = shell.clone();
-                    move |input| {
-                        let old = shell.clone();
-                        let mut new = old.clone();
-                        new.hotkey = Some(input);
-                        Message::SetConfig(SetConfigFields::ShellCommands(Editable::Update {
-                            old,
-                            new,
-                        }))
-                    }
-                })
-                .into(),
+                hotkey_field(
+                    self.hotkey.as_deref().unwrap_or(""),
+                    HotkeyTarget::Shell(shell.clone()),
+                    &hotkey_capture,
+                    theme.clone(),
+                ),
             )
             .into(),
             tuple_row(

@@ -49,13 +49,14 @@ pub enum SettingsTab {
     Commands,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum HotkeyTarget {
     Toggle,
     Clipboard,
+    Shell(Shelly),
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum HotkeyCapture {
     Idle,
     Recording {
