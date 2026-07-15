@@ -39,12 +39,15 @@ use crate::app::settings_window_settings;
 use crate::app::tile::AppIndex;
 use crate::app::{HotkeyCapture, Message, Page, tile::Tile};
 use crate::autoupdate::download_latest_app;
-use crate::calculator::Expr;
+
+use crate::clipboard::ClipBoardContentType;
 use crate::commands::Function;
 use crate::config::Config;
 use crate::config::MainPage;
 use crate::config::Position;
 use crate::config::ThemeMode;
+use crate::database::load_clipboard;
+use crate::database::store_clipboard_content;
 use crate::debounce::DebouncePolicy;
 use crate::platform::macos::events::Event;
 use crate::platform::macos::launching::Shortcut;
@@ -69,7 +72,7 @@ fn extract_target(url: &Url) -> Option<String> {
 enum QueryAction {
     OpenWebsite(String),
     UnitConversions(Vec<unit_conversion::ConversionResult>),
-    Calculation(Expr),
+    Calculation(String),
     GoogleSearch(String),
     ShellCommand(String),
     ShowFavourites,
@@ -94,8 +97,8 @@ fn classify_query_action(page: &Page, query: &str, query_lc: &str) -> Option<Que
         Some(QueryAction::OpenWebsite(query.to_string()))
     } else if let Some(conversions) = unit_conversion::convert_query(query) {
         Some(QueryAction::UnitConversions(conversions))
-    } else if let Ok(expr) = Expr::from_str(query) {
-        Some(QueryAction::Calculation(expr))
+    } else if let Ok(expr) = evalexpr::eval(query) {
+        Some(QueryAction::Calculation(expr.to_string()))
     } else if query.ends_with('?') || query.split_whitespace().nth(2).is_some() {
         Some(QueryAction::GoogleSearch(query.to_string()))
     } else {
@@ -201,6 +204,13 @@ pub fn handle_update(tile: &mut Tile, message: Message) -> Task<Message> {
             tile.events = Event::get_events(tile.config.event_duration);
             Task::none()
         }
+
+        Message::LoadClipboardData(limit) => {
+            info!("Loading {} clipboard items.", limit);
+            tile.clipboard_content = load_clipboard(&tile.conn, limit);
+            Task::none()
+        }
+
         Message::UriReceived(uri) => {
             let Ok(url) = Url::parse(&uri) else {
                 return Task::none();
@@ -356,7 +366,8 @@ pub fn handle_update(tile: &mut Tile, message: Message) -> Task<Message> {
                 };
 
                 let quantity = match tile.page {
-                    Page::Main | Page::FileSearch | Page::ClipboardHistory => 56.,
+                    Page::Main | Page::FileSearch => 56.,
+                    Page::ClipboardHistory => 40.,
                     Page::EmojiSearch => 5.,
                 };
 
@@ -713,7 +724,9 @@ pub fn handle_update(tile: &mut Tile, message: Message) -> Task<Message> {
             match action {
                 Editable::Create(content) => {
                     if !tile.clipboard_content.contains(&content) {
+                        store_clipboard_content(&tile.conn, &content);
                         tile.clipboard_content.insert(0, content);
+                        tile.clipboard_content.truncate(300);
                         return Task::none();
                     }
 
@@ -731,6 +744,7 @@ pub fn handle_update(tile: &mut Tile, message: Message) -> Task<Message> {
 
                     tile.clipboard_content = new_content_vec;
                     tile.clipboard_content.insert(0, content);
+                    tile.clipboard_content.truncate(300);
                 }
                 Editable::Delete(content) => {
                     tile.clipboard_content = tile
@@ -1493,13 +1507,15 @@ fn execute_query(tile: &mut Tile, id: Id) -> Task<Message> {
             .map(|conversion| conversion.to_app())
             .collect();
         return resize_task(id, tile.results.len() as u32);
-    } else if let Ok(res) = Expr::from_str(&tile.query) {
+    } else if let Ok(res) = evalexpr::eval(&tile.query) {
         tile.results.push(App {
             ranking: 0,
-            open_command: AppCommand::Function(Function::Calculate(res.clone())),
+            open_command: AppCommand::Function(Function::CopyToClipboard(
+                ClipBoardContentType::Text(res.to_string()),
+            )),
             desc: RUSTCAST_DESC_NAME.to_string(),
             icons: AppIcon::None,
-            display_name: res.eval().map(|x| x.to_string()).unwrap_or("".to_string()),
+            display_name: res.to_string(),
             search_name: "".to_string(),
         });
         return single_item_resize_task(id);
@@ -1523,6 +1539,7 @@ mod tests {
     use super::*;
     use crate::app::tile::{AppIndex, Hotkeys};
     use crate::config::{Buffer, Theme};
+    use crate::database::initialise_database;
     use crate::platform::macos::launching::Shortcut;
 
     fn test_app(search_name: &str, command: AppCommand, ranking: i32) -> App {
@@ -1587,6 +1604,7 @@ mod tests {
             settings_window: None,
             hotkey_capture: HotkeyCapture::Idle,
             previous_input_source: None,
+            conn: initialise_database(),
         }
     }
 

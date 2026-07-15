@@ -189,6 +189,7 @@ pub enum Message {
         modifiers: iced::keyboard::Modifiers,
     },
     FinishHotkeyCapture,
+    LoadClipboardData(u32),
 }
 
 #[derive(Debug, Clone)]

@@ -3,7 +3,7 @@
 TARGET="rustcast"                   # your Cargo binary name
 ASSETS_DIR="assets"
 RELEASE_DIR="target/release"
-APP_NAME="Rustcast.app"
+APP_NAME="RustCast.app"
 APP_TEMPLATE="$ASSETS_DIR/macos/$APP_NAME"
 APP_TEMPLATE_PLIST="$APP_TEMPLATE/Contents/Info.plist"
 APP_DIR="$RELEASE_DIR/macos"
