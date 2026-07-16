@@ -852,6 +852,7 @@ pub fn handle_update(tile: &mut Tile, message: Message) -> Task<Message> {
                 SetConfigFields::Modes(Editable::Create((key, value))) => {
                     final_config.modes.insert(key, value);
                 }
+                SetConfigFields::SetShowOnStartup(show) => final_config.show_on_startup = show,
                 SetConfigFields::SetEventDuration(duration) => {
                     if duration.trim().is_empty() {
                         final_config.event_duration = 0;

@@ -282,6 +282,15 @@ fn general_tab(config: Box<Config>, theme: crate::config::Theme) -> Column<'stat
             .into(),
     ]));
 
+    let show_on_startup = settings_row_without_reset(settings_item_row([
+        settings_hint_text(theme.clone(), "Show on startup", None::<String>),
+        Space::new().width(Length::Fill).into(),
+        toggler(config.clone().show_on_startup)
+            .style(move |_, status| settings_toggle_style(status))
+            .on_toggle(|a| Message::SetConfig(SetConfigFields::SetShowOnStartup(a)))
+            .into(),
+    ]));
+
     let auto_update = settings_row_without_reset(settings_item_row([
         settings_hint_text(theme.clone(), "Auto update", None::<String>),
         Space::new().width(Length::Fill).into(),
@@ -467,6 +476,7 @@ fn general_tab(config: Box<Config>, theme: crate::config::Theme) -> Column<'stat
         start_at_login,
         position_dropdown,
         auto_update,
+        show_on_startup,
         haptic,
         tray_icon,
         clipboard_history,
