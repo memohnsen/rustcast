@@ -44,12 +44,19 @@ pub fn new(hotkeys: Hotkeys, config: &Config) -> (Tile, Task<Message>) {
 
     let pos = config.window_location;
 
+    let show_on_start = config.show_on_startup;
+
     let open = open.discard().chain(window::run(id, move |handle| {
         platform::window_config(
             &handle.window_handle().expect("Unable to get window handle"),
             pos,
         );
         transform_process_to_ui_element();
+        if show_on_start {
+            Message::OpenWindow
+        } else {
+            Message::HideWindow(id)
+        }
     }));
     info!("MacOS platform config applied");
 
@@ -112,10 +119,7 @@ pub fn new(hotkeys: Hotkeys, config: &Config) -> (Tile, Task<Message>) {
             previous_input_source: None,
             conn,
         },
-        Task::batch([
-            open.map(|_| Message::OpenWindow),
-            Task::done(Message::LoadClipboardData(300)),
-        ]),
+        Task::batch([open, Task::done(Message::LoadClipboardData(300))]),
     )
 }
 

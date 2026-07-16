@@ -187,6 +187,7 @@ pub enum SetConfigFields {
     ShowMenubarIcon(bool),
     SetPage(MainPage),
     SetEventDuration(String),
+    SetShowOnStartup(bool),
     Modes(Editable<(String, String)>),
     Aliases(Editable<(String, String)>),
     SearchDirs(Editable<String>),
