@@ -72,8 +72,8 @@ Full config docs can be found
 
 The config file should be located at: `~/.config/rustcast/config.toml` RustCast
 creates the default configuration for you, but it does use its
-[default options](docs/default.toml) Here's a full list of what all you can
-configure [The list](docs/config.toml).
+[default options](docs/default.toml) Here's a full list of everything you can configure
+[The list](docs/config.toml).
 
 ## Feature list:
 
@@ -93,7 +93,7 @@ configure [The list](docs/config.toml).
       and press enter
 - [x] Calculator (27/12/2025)
 - [x] Clipboard History (29/12/2025) This works by typing `cbhist` to enter the
-      cliboard history page, which allows u to access your clipboard history,
+      clipboard history page, which allows you to access your clipboard history,
 - [x] Blur / transparent background (7/1/2026)
 - [x] Select the options using arrow keys
 - [x] Tray icons (8/1/2026)
@@ -124,7 +124,7 @@ configure [The list](docs/config.toml).
 
 ## RustCast wouldn't be possible without these people:
 
-- [Nazeofel](https://github.com/Nazeofel) - First sponsor + initiater of windows
+- [Nazeofel](https://github.com/Nazeofel) - First sponsor + initiator of windows
   support
 - [Mnem42](https://github.com/mnem42) - Helped add windows support
 - [Random Scientist](https://github.com/Random-Scientist) - First ever community
@@ -140,7 +140,7 @@ configure [The list](docs/config.toml).
   file search to use `mdfind`
 - [JON](https://github.com/jiasunzhu613) - Contributor,
 
-And ofc, all the people who starred my repo!!
+And of course, all the people who starred my repo!!
 
 And the updated list of contributors to the macos version:
 
@@ -169,4 +169,4 @@ And the updated list of contributors to the macos version:
 
 I didn't want to pay for raycast + wanted to get better at rust. Raycast in
 itself is one of the most useful productivity apps in my opinion, and it is
-truly an underappreiciated marvel of computer engineering
+truly an underappreciated marvel of computer engineering
