@@ -22,7 +22,7 @@ sed -i '' -e "s/{{ VERSION }}/$VERSION/g" "$APP_TEMPLATE_PLIST.tmp"
 sed -i '' -e "s/{{ BUILD }}/$BUILD/g" "$APP_TEMPLATE_PLIST.tmp"
 mv "$APP_TEMPLATE_PLIST.tmp" "$APP_TEMPLATE_PLIST"
 
-export MACOSX_DEPLOYMENT_TARGET="11.0"
+export MACOSX_DEPLOYMENT_TARGET="13.0"
 
 # Ensure both targets exist
 rustup target add x86_64-apple-darwin
